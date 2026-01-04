@@ -206,10 +206,47 @@ function RightIssueCalculator() {
   const [waranOld, setWaranOld] = useState(1);
   const [waranNew, setWaranNew] = useState(1);
   const [result, setResult] = useState<any>(null);
+
   const formatIDR = (num: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(num);
   const formatNum = (num: number) => new Intl.NumberFormat("id-ID").format(num);
   const handleInput = (setter: any) => (e: React.ChangeEvent<HTMLInputElement>) => { const val = e.target.value.replace(/\D/g, ""); setter(Number(val)); };
-  useEffect(() => { if (lotAwal === 0 || hargaPasar === 0 || hargaTebus === 0) return; const R = ratioOld / ratioNew; const isWorthy = hargaPasar > hargaTebus; const recommendation = isWorthy ? "GAS TEBUS! (Diskon)" : "JANGAN TEBUS! (Mahal)"; const pembagi = hargaTebus + (R * hargaPasar); const lotJual = Math.round((hargaTebus / pembagi) * lotAwal); const danaMasuk = lotJual * 100 * hargaPasar; const sisaLotLama = lotAwal - lotJual; const hakTebus = Math.floor((sisaLotLama / ratioOld) * ratioNew); const danaTebus = hakTebus * 100 * hargaTebus; const selisihCash = danaMasuk - danaTebus; const totalLotBaru = sisaLotLama + hakTebus; const growth = ((totalLotBaru - lotAwal) / lotAwal) * 100; let totalWaran = 0; if (hasWaran) totalWaran = Math.floor((hakTebus * waranNew) / waranOld); setResult({ recommendation, isWorthy, lotJual, danaMasuk, hakTebus, danaTebus, selisihCash, totalLotBaru, growth, totalWaran }); }, [emiten, lotAwal, hargaPasar, hargaTebus, ratioOld, ratioNew, hasWaran, waranOld, waranNew]);
+
+  useEffect(() => {
+    if (lotAwal === 0 || hargaPasar === 0 || hargaTebus === 0) return;
+    const R = ratioOld / ratioNew; 
+    const isWorthy = hargaPasar > hargaTebus;
+    const recommendation = isWorthy ? "GAS TEBUS! (Diskon)" : "JANGAN TEBUS! (Mahal)";
+    const pembagi = hargaTebus + (R * hargaPasar);
+    
+    // Perhitungan Lot
+    const lotJualRaw = (hargaTebus / pembagi) * lotAwal;
+    const lotJual = Math.round(lotJualRaw); 
+    const sisaLotLama = lotAwal - lotJual;
+    const hakTebus = Math.floor((sisaLotLama / ratioOld) * ratioNew); 
+    
+    // Perhitungan Dana
+    const danaMasuk = lotJual * 100 * hargaPasar;
+    const danaTebus = hakTebus * 100 * hargaTebus;
+    const selisihCash = danaMasuk - danaTebus;
+    
+    const totalLotBaru = sisaLotLama + hakTebus;
+    const growth = ((totalLotBaru - lotAwal) / lotAwal) * 100;
+    
+    // WARAN
+    let totalWaran = 0;
+    if (hasWaran) totalWaran = Math.floor((hakTebus * waranNew) / waranOld);
+
+    // HITUNG HARGA RATA-RATA BARU (Weighted Average)
+    // Sisa Lot Lama (Harga Pasar) + Lot Tebus (Harga Tebus)
+    const valSisaLama = sisaLotLama * 100 * hargaPasar;
+    const valBaru = danaTebus; // Sama dengan Hak Tebus * 100 * Harga Tebus
+    const avgPrice = Math.round((valSisaLama + valBaru) / (totalLotBaru * 100));
+
+    setResult({ 
+      recommendation, isWorthy, lotJual, danaMasuk, hakTebus, 
+      danaTebus, selisihCash, totalLotBaru, growth, totalWaran, avgPrice 
+    });
+  }, [emiten, lotAwal, hargaPasar, hargaTebus, ratioOld, ratioNew, hasWaran, waranOld, waranNew]);
 
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200">
@@ -218,6 +255,7 @@ function RightIssueCalculator() {
         <p className="opacity-80 text-xs">Strategi: "Tail Swallowing" (Tanpa Top Up)</p>
         <div className="absolute top-4 right-4 font-mono font-bold text-white/50 text-xs">@illusix</div>
       </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
         <div className="p-4 bg-slate-50 border-b md:border-b-0 md:border-r border-slate-200 space-y-3">
           <div className="grid grid-cols-3 gap-2">
@@ -228,9 +266,43 @@ function RightIssueCalculator() {
             <div><label className="text-[10px] font-bold text-slate-500 uppercase">Harga Pasar</label><input type="text" value={formatNum(hargaPasar)} onChange={handleInput(setHargaPasar)} className="w-full p-2 border rounded font-bold text-emerald-700" /></div>
             <div><label className="text-[10px] font-bold text-slate-500 uppercase">Harga Tebus</label><input type="text" value={formatNum(hargaTebus)} onChange={handleInput(setHargaTebus)} className="w-full p-2 border rounded font-bold text-orange-600" /></div>
           </div>
-          <div className="bg-white p-2 border rounded"><div className="flex items-center gap-3"><div className="flex-1"><label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Rasio Lama (Kiri)</label><input type="number" value={ratioOld} onChange={(e) => setRatioOld(Number(e.target.value))} className="w-full p-2 border rounded text-center font-bold bg-slate-50" /></div><span className="font-bold text-slate-400 text-lg mt-4">:</span><div className="flex-1"><label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Rasio Baru (Kanan)</label><input type="number" value={ratioNew} onChange={(e) => setRatioNew(Number(e.target.value))} className="w-full p-2 border rounded text-center font-bold bg-slate-50" /></div></div></div>
-          <div className="bg-slate-50 p-2 rounded-lg border border-slate-200"><div className="flex items-center justify-between mb-2"><label className="text-xs font-bold text-slate-600">Ada Waran?</label><input type="checkbox" checked={hasWaran} onChange={(e) => setHasWaran(e.target.checked)} className="w-5 h-5 accent-indigo-600" /></div>{hasWaran && (<div className="flex items-center gap-2 text-xs"><span className="text-slate-500">Tiap</span><input type="number" value={waranOld} onChange={(e) => setWaranOld(Number(e.target.value))} className="w-12 p-1 border rounded text-center bg-white" /><span className="text-slate-500">Dpt</span><input type="number" value={waranNew} onChange={(e) => setWaranNew(Number(e.target.value))} className="w-12 p-1 border rounded text-center bg-white" /><span className="text-slate-500">Waran</span></div>)}</div>
-          {result && (<div className="p-2 bg-blue-50 border border-blue-200 rounded text-[11px] text-blue-900 text-center leading-tight">Jual induk <strong>{formatNum(result.lotJual)}</strong> lot untuk menebus <strong>{formatNum(result.hakTebus)}</strong> lot.</div>)}
+          
+          <div className="bg-white p-2 border rounded">
+             <div className="flex items-center gap-3">
+                <div className="flex-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Rasio Lama (Kiri)</label>
+                    <input type="number" value={ratioOld} onChange={(e) => setRatioOld(Number(e.target.value))} className="w-full p-2 border rounded text-center font-bold bg-slate-50" />
+                </div>
+                <span className="font-bold text-slate-400 text-lg mt-4">:</span>
+                <div className="flex-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Rasio Baru (Kanan)</label>
+                    <input type="number" value={ratioNew} onChange={(e) => setRatioNew(Number(e.target.value))} className="w-full p-2 border rounded text-center font-bold bg-slate-50" />
+                </div>
+             </div>
+          </div>
+          
+          <div className="bg-slate-50 p-2 rounded-lg border border-slate-200">
+            <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-bold text-slate-600">Ada Waran?</label>
+                <input type="checkbox" checked={hasWaran} onChange={(e) => setHasWaran(e.target.checked)} className="w-5 h-5 accent-indigo-600" />
+            </div>
+            {hasWaran && (
+                <div className="flex items-center gap-2 text-xs">
+                    <span className="text-slate-500">Tiap</span>
+                    <input type="number" value={waranOld} onChange={(e) => setWaranOld(Number(e.target.value))} className="w-12 p-1 border rounded text-center bg-white" />
+                    <span className="text-slate-500">Dpt</span>
+                    <input type="number" value={waranNew} onChange={(e) => setWaranNew(Number(e.target.value))} className="w-12 p-1 border rounded text-center bg-white" />
+                    <span className="text-slate-500">Waran</span>
+                </div>
+            )}
+          </div>
+          
+          {result && (
+              <div className="p-2 bg-blue-50 border border-blue-200 rounded text-[11px] text-blue-900 text-center leading-tight">
+                  Jual induk <strong>{formatNum(result.lotJual)}</strong> lot untuk menebus <strong>{formatNum(result.hakTebus)}</strong> lot.
+              </div>
+          )}
+
         </div>
         <div className="p-4 bg-white">
           {result && (
@@ -241,10 +313,22 @@ function RightIssueCalculator() {
                 <div className="flex justify-between items-center bg-emerald-50 p-2 rounded border border-emerald-100"><div><span className="text-[10px] font-bold text-emerald-400 block uppercase">2. Tebus Right</span><span className="font-bold text-emerald-700 text-lg">{formatNum(result.hakTebus)} Lot</span></div><div className="text-right"><span className="text-[10px] text-slate-400 block">Bayar Tebus</span><span className="font-bold text-slate-600 text-xs">{formatIDR(result.danaTebus)}</span></div></div>
                 <div className="text-center text-xs text-slate-500 pt-1">Sisa Uang Tunai: <span className="font-bold text-slate-800 bg-slate-200 px-2 py-0.5 rounded">{formatIDR(result.selisihCash)}</span></div>
               </div>
-              <div className="grid grid-cols-1 gap-2">
-                <div className="bg-white p-3 rounded-lg border shadow-sm flex justify-between items-center"><div><p className="text-[10px] text-slate-500 font-bold uppercase">Total Lot Akhir</p><p className="text-xl font-bold text-indigo-700">{formatNum(result.totalLotBaru)}</p></div><div className="text-right"><span className="inline-block px-2 py-1 rounded bg-green-100 text-green-700 text-xs font-bold">+{result.growth.toFixed(1)}% Growth</span></div></div>
-                {hasWaran && (<div className="bg-white p-3 rounded-lg border shadow-sm flex justify-between items-center"><div><p className="text-[10px] text-slate-500 font-bold uppercase">Bonus Waran</p><p className="text-xl font-bold text-orange-600">{formatNum(result.totalWaran)}</p></div><span className="text-xs text-slate-400">Lembar Gratis</span></div>)}
+              
+              {/* HASIL LOT & HARGA RATA-RATA BARU (GRID) */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-white p-3 rounded-lg border shadow-sm">
+                    <p className="text-[10px] text-slate-500 font-bold uppercase">Total Lot Akhir</p>
+                    <p className="text-lg font-bold text-indigo-700">{formatNum(result.totalLotBaru)}</p>
+                    <span className="inline-block px-1.5 py-0.5 rounded bg-green-100 text-green-700 text-[10px] font-bold">+{result.growth.toFixed(1)}% Growth</span>
+                </div>
+                <div className="bg-white p-3 rounded-lg border shadow-sm text-right">
+                    <p className="text-[10px] text-slate-500 font-bold uppercase">Harga Rata-rata (Est)</p>
+                    <p className="text-lg font-bold text-emerald-600">{formatIDR(result.avgPrice)}</p>
+                    <span className="text-[10px] text-slate-400">Harga Modal Baru</span>
+                </div>
               </div>
+
+              {hasWaran && (<div className="bg-white p-3 rounded-lg border shadow-sm flex justify-between items-center"><div><p className="text-[10px] text-slate-500 font-bold uppercase">Bonus Waran</p><p className="text-xl font-bold text-orange-600">{formatNum(result.totalWaran)}</p></div><span className="text-xs text-slate-400">Lembar Gratis</span></div>)}
             </div>
           )}
         </div>
