@@ -9,7 +9,7 @@ type Method = "NORMAL" | "MARTINGALE" | "FIBONACCI";
 export default function SuperStockApp() {
   const [activeTab, setActiveTab] = useState<Tab>("SCALE");
 
-  // --- RINGKASAN CARA PAKAI (Dokumentasi) ---
+  // --- DOKUMENTASI PANDUAN ---
   const renderGuide = () => (
     <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 text-sm space-y-3 mb-24">
       <h3 className="font-bold text-slate-700 uppercase border-b pb-2">📖 Panduan Singkat</h3>
@@ -76,19 +76,26 @@ export default function SuperStockApp() {
         </div>
       </div>
 
-      {/* --- STICKY PROMO BAR (RLA GROUP) --- */}
+      {/* --- STICKY PROMO BAR (RLA GROUP) - TOMBOL DIPERJELAS --- */}
       <a 
         href="https://t.me/+zrEOLwygGCBhZTQ1" 
         target="_blank" 
         rel="noopener noreferrer"
-        className="fixed bottom-0 left-0 right-0 bg-[#0088cc] text-white p-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-50 flex items-center justify-center gap-2 hover:bg-[#0077b5] transition-colors"
+        className="fixed bottom-0 left-0 right-0 bg-[#0088cc] text-white p-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-50 flex items-center justify-between px-4 md:justify-center md:gap-8 hover:bg-[#0077b5] transition-colors group"
       >
-        {/* Icon Telegram Sederhana (SVG) */}
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="fill-white stroke-none"><path d="M21.198 2.433a2.242 2.242 0 0 0-1.022.215l-8.609 3.33c-2.068.8-4.133 1.598-5.724 2.21a405.15 405.15 0 0 1-2.849 1.09c-.42.147-.99.332-1.473.901-.728.968.193 1.798.919 2.286 1.61.516 3.275 1.009 4.654 1.472.509 1.793.997 3.592 1.48 5.388.16.36.506.494.864.498l-.002.018s.281.028.555-.038a2.1 2.1 0 0 0 .933-.517c.345-.324 1.28-1.244 1.811-1.764l3.999 2.952.032.018s.442.311 1.09.355c.324.022.75-.04 1.116-.308.37-.27.613-.702.728-1.196.342-1.492 2.61-12.285 2.997-14.072l-.01.042c.27-1.006.17-1.928-.455-2.381a2.24 2.24 0 0 0-1.635-.499Z"/></svg>
-        <div className="flex flex-col leading-tight">
-          <span className="text-[10px] opacity-90 font-medium">Mau Sinyal & Diskusi Saham?</span>
-          <span className="font-bold text-sm">GABUNG GRUP RLA SEKARANG &raquo;</span>
+        <div className="flex items-center gap-3">
+          {/* Icon Telegram */}
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="fill-white stroke-none w-8 h-8 md:w-6 md:h-6 shrink-0"><path d="M21.198 2.433a2.242 2.242 0 0 0-1.022.215l-8.609 3.33c-2.068.8-4.133 1.598-5.724 2.21a405.15 405.15 0 0 1-2.849 1.09c-.42.147-.99.332-1.473.901-.728.968.193 1.798.919 2.286 1.61.516 3.275 1.009 4.654 1.472.509 1.793.997 3.592 1.48 5.388.16.36.506.494.864.498l-.002.018s.281.028.555-.038a2.1 2.1 0 0 0 .933-.517c.345-.324 1.28-1.244 1.811-1.764l3.999 2.952.032.018s.442.311 1.09.355c.324.022.75-.04 1.116-.308.37-.27.613-.702.728-1.196.342-1.492 2.61-12.285 2.997-14.072l-.01.042c.27-1.006.17-1.928-.455-2.381a2.24 2.24 0 0 0-1.635-.499Z"/></svg>
+          <div className="flex flex-col leading-tight">
+            <span className="text-[10px] opacity-90 font-medium">Mau Sinyal & Diskusi Saham?</span>
+            <span className="font-bold text-sm">Join Grup RLA</span>
+          </div>
         </div>
+
+        {/* TOMBOL BUTTON FISIK (Agar Jelas) */}
+        <span className="bg-white text-[#0088cc] px-3 py-1.5 rounded-lg text-xs font-extrabold shadow-sm group-hover:scale-105 transition-transform whitespace-nowrap">
+           KLIK DI SINI ➜
+        </span>
       </a>
     </div>
   );
@@ -125,17 +132,9 @@ function ScaleCalculator() {
   // SMART DEFAULT SWITCHER
   useEffect(() => {
     if (mode === "SCALE_IN") {
-      // Jika user belum ubah dari default Scale Out, reset ke default Scale In
-      if (emiten === "DCBA") {
-        setEmiten("ABCD");
-        setTotalInput(50000000);
-      }
+      if (emiten === "DCBA") { setEmiten("ABCD"); setTotalInput(50000000); }
     } else {
-      // Jika user belum ubah dari default Scale In, reset ke default Scale Out
-      if (emiten === "ABCD") {
-        setEmiten("DCBA");
-        setTotalInput(1000);
-      }
+      if (emiten === "ABCD") { setEmiten("DCBA"); setTotalInput(1000); }
     }
   }, [mode]);
 
@@ -149,14 +148,10 @@ function ScaleCalculator() {
     return Math.round(price / tick) * tick;
   };
 
-  // VALIDASI NAMA SAHAM
   const isInvalidTicker = emiten === "ABCD" || emiten === "DCBA";
 
   const calculateStrategy = () => {
-    if (isInvalidTicker) {
-        setResults([]);
-        return;
-    }
+    if (isInvalidTicker) { setResults([]); return; }
 
     const spread = Math.abs(startPrice - targetPrice) / startPrice;
     setSpreadPct(spread * 100);
@@ -230,7 +225,6 @@ function ScaleCalculator() {
             <button onClick={() => setMode("SCALE_OUT")} className={`flex-1 py-2 text-xs font-bold rounded-md ${mode === "SCALE_OUT" ? "bg-white shadow text-red-700" : "text-slate-500"}`}>Scale Out (Sell)</button>
           </div>
           
-          {/* ALERT JIKA EMITEN MASIH DEFAULT */}
           {isInvalidTicker && (
             <div className="bg-red-100 border border-red-200 text-red-700 px-3 py-2 rounded text-[10px] font-bold animate-pulse">
                 ⚠️ Silakan ganti nama saham "{emiten}" dengan kode saham yang benar (Contoh: BBCA, ASII) untuk melihat hasil.
@@ -252,9 +246,7 @@ function ScaleCalculator() {
           </div>
         </div>
         
-        {/* OUTPUT AREA */}
         <div className="lg:col-span-2 p-4 bg-white relative">
-          {/* BLUR / HIDE JIKA INVALID */}
           {isInvalidTicker ? (
              <div className="h-full w-full flex flex-col items-center justify-center text-slate-300 space-y-2 py-10">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
