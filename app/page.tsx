@@ -11,7 +11,7 @@ type GameState = "LOGIN" | "SETUP" | "PLAY" | "GAMEOVER" | "WIN";
 export default function SuperStockApp() {
   const [activeTab, setActiveTab] = useState<Tab>("SCALE");
 
-  // --- DOKUMENTASI PANDUAN (Hanya muncul di Tab Saham) ---
+  // --- DOKUMENTASI PANDUAN ---
   const renderGuide = () => (
     <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 text-sm space-y-3 mb-24">
       <h3 className="font-bold text-slate-700 uppercase border-b pb-2">📖 Panduan Singkat</h3>
@@ -43,7 +43,7 @@ export default function SuperStockApp() {
         </div>
       </div>
 
-      {/* --- STICKY CONTACT BAR (DUAL BUTTON) --- */}
+      {/* --- STICKY CONTACT BAR --- */}
       <div className="fixed bottom-0 left-0 right-0 z-[60] flex shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
         <a href="https://t.me/+zrEOLwygGCBhZTQ1" target="_blank" rel="noopener noreferrer" className="flex-1 bg-[#0088cc] text-white p-3 flex items-center justify-center gap-2 hover:bg-[#0077b5] transition-colors border-r border-white/20">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="fill-white stroke-none"><path d="M21.198 2.433a2.242 2.242 0 0 0-1.022.215l-8.609 3.33c-2.068.8-4.133 1.598-5.724 2.21a405.15 405.15 0 0 1-2.849 1.09c-.42.147-.99.332-1.473.901-.728.968.193 1.798.919 2.286 1.61.516 3.275 1.009 4.654 1.472.509 1.793.997 3.592 1.48 5.388.16.36.506.494.864.498l-.002.018s.281.028.555-.038a2.1 2.1 0 0 0 .933-.517c.345-.324 1.28-1.244 1.811-1.764l3.999 2.952.032.018s.442.311 1.09.355c.324.022.75-.04 1.116-.308.37-.27.613-.702.728-1.196.342-1.492 2.61-12.285 2.997-14.072l-.01.042c.27-1.006.17-1.928-.455-2.381a2.24 2.24 0 0 0-1.635-.499Z"/></svg>
@@ -59,15 +59,24 @@ export default function SuperStockApp() {
 }
 
 // ==========================================
-// 3. GAME BAPAK-BAPAK (UPDATED)
+// 3. GAME BAPAK-BAPAK (ULTIMATE VERSION)
 // ==========================================
 function MathGame() {
   const [gameState, setGameState] = useState<GameState>("LOGIN");
   const [password, setPassword] = useState("");
-  const [config, setConfig] = useState({ totalSoal: 20, timePerSoal: 5, mode: "RANDOM" as GameMode });
+  
+  // CONFIG DENGAN MIN/MAX
+  const [config, setConfig] = useState({ 
+    totalSoal: 20, 
+    timePerSoal: 5, 
+    mode: "RANDOM" as GameMode,
+    minNum: 1,  // Angka terkecil
+    maxNum: 50  // Angka terbesar
+  });
+
   const [currentQ, setCurrentQ] = useState({ q: "", a: 0 });
   const [inputAns, setInputAns] = useState("");
-  const [progress, setProgress] = useState(0); // Progress = Jumlah Benar + 1 (Soal Aktif)
+  const [progress, setProgress] = useState(0); 
   const [timeLeft, setTimeLeft] = useState(0);
   const timerRef = useRef<any>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -79,7 +88,10 @@ function MathGame() {
     else alert("Password salah Pak! Coba lagi.");
   };
 
-  // --- LOGIKA GAME ---
+  // --- HELPER RANDOM ---
+  const rand = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+  // --- LOGIKA GENERATE SOAL ---
   const generateQuestion = () => {
     let m = config.mode;
     if (m === "RANDOM") {
@@ -88,23 +100,31 @@ function MathGame() {
     }
 
     let n1 = 0, n2 = 0, q = "", a = 0;
-    
+    const min = config.minNum;
+    const max = config.maxNum;
+
     if (m === "ADD") {
-      n1 = Math.floor(Math.random() * 50) + 1;
-      n2 = Math.floor(Math.random() * 50) + 1;
+      n1 = rand(min, max);
+      n2 = rand(min, max);
       q = `${n1} + ${n2}`; a = n1 + n2;
     } else if (m === "SUB") {
-      n1 = Math.floor(Math.random() * 50) + 20; 
-      n2 = Math.floor(Math.random() * n1); 
+      n1 = rand(min, max); 
+      n2 = rand(min, n1); // Biar tidak negatif
       q = `${n1} - ${n2}`; a = n1 - n2;
     } else if (m === "MUL") {
-      n1 = Math.floor(Math.random() * 10) + 2; 
-      n2 = Math.floor(Math.random() * 10) + 2;
+      // Untuk perkalian, kalau range terlalu besar angkanya jadi raksasa.
+      // Kita batasi n2 agar tetap masuk akal dikerjakan di kepala (max 12 atau sesuai max user)
+      const limitMul = max > 12 ? 12 : max;
+      n1 = rand(min, max); 
+      n2 = rand(min, limitMul);
       q = `${n1} × ${n2}`; a = n1 * n2;
     } else if (m === "DIV") {
-      n2 = Math.floor(Math.random() * 9) + 2; 
-      a = Math.floor(Math.random() * 10) + 1; 
-      n1 = n2 * a; // Biar pembagian bulat
+      // Pembagian: Hasilnya (a) dan pembaginya (n2) kita ambil dari range.
+      // Jadi Soalnya (n1) adalah hasil kali mereka.
+      const limitDiv = max > 12 ? 12 : max; 
+      n2 = rand(Math.max(2, min), limitDiv); 
+      a = rand(min, max); 
+      n1 = n2 * a; 
       q = `${n1} : ${n2}`;
     }
 
@@ -115,6 +135,11 @@ function MathGame() {
   };
 
   const startGame = () => {
+    // Validasi sederhana
+    if(config.minNum >= config.maxNum) {
+      alert("Angka Min harus lebih kecil dari Max!");
+      return;
+    }
     setProgress(1);
     setGameState("PLAY");
     generateQuestion();
@@ -125,14 +150,14 @@ function MathGame() {
     if (gameState === "PLAY") {
       timerRef.current = setInterval(() => {
         setTimeLeft((prev) => {
-          if (prev <= 1) {
+          if (prev <= 0.1) {
             clearInterval(timerRef.current);
             setGameState("GAMEOVER");
             return 0;
           }
-          return prev - 1;
+          return prev - 0.1; // Update lebih cepat untuk animasi smooth
         });
-      }, 1000);
+      }, 100);
     }
     return () => clearInterval(timerRef.current);
   }, [gameState, currentQ]); 
@@ -152,7 +177,6 @@ function MathGame() {
     }
   };
 
-  // Status Salah: Jika input tidak kosong DAN tidak sama dengan jawaban
   const isWrong = inputAns !== "" && parseInt(inputAns) !== currentQ.a;
 
   // --- UI RENDER ---
@@ -182,6 +206,20 @@ function MathGame() {
             ))}
           </div>
         </div>
+
+        {/* SETTING RENTANG ANGKA (BARU) */}
+        <div className="grid grid-cols-2 gap-4 bg-slate-50 p-3 rounded-lg border border-slate-200">
+           <div className="col-span-2 text-xs font-bold text-slate-500 uppercase">Rentang Angka (Kesulitan)</div>
+           <div>
+            <label className="block text-[10px] font-bold text-slate-400 mb-1">Paling Kecil</label>
+            <input type="number" value={config.minNum} onChange={e => setConfig({...config, minNum: Number(e.target.value)})} className="w-full p-2 border rounded font-bold text-center" />
+           </div>
+           <div>
+            <label className="block text-[10px] font-bold text-slate-400 mb-1">Paling Besar</label>
+            <input type="number" value={config.maxNum} onChange={e => setConfig({...config, maxNum: Number(e.target.value)})} className="w-full p-2 border rounded font-bold text-center" />
+           </div>
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Jumlah Soal</label><input type="number" value={config.totalSoal} onChange={e => setConfig({...config, totalSoal: Number(e.target.value)})} className="w-full p-2 border rounded font-bold text-center" /></div>
           <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Waktu (Detik)</label><input type="number" value={config.timePerSoal} onChange={e => setConfig({...config, timePerSoal: Number(e.target.value)})} className="w-full p-2 border rounded font-bold text-center" /></div>
@@ -195,7 +233,7 @@ function MathGame() {
     <div className="bg-red-50 rounded-xl shadow-lg p-8 max-w-sm mx-auto mt-10 text-center border-2 border-red-200">
       <div className="text-6xl mb-4">⏰</div>
       <h2 className="text-3xl font-bold text-red-600 mb-2">WAKTU HABIS!</h2>
-      <p className="text-slate-600 mb-6">Jangan menyerah Pak, coba lagi lebih cepat!</p>
+      <p className="text-slate-600 mb-6">Jangan menyerah Pak, coba lagi!</p>
       <div className="text-lg font-bold bg-white p-3 rounded mb-4">Benar: {progress - 1} / {config.totalSoal}</div>
       <button onClick={() => setGameState("SETUP")} className="w-full bg-red-600 text-white py-3 rounded-lg font-bold">COBA LAGI</button>
     </div>
@@ -211,16 +249,29 @@ function MathGame() {
     </div>
   );
 
+  // --- LOGIKA WARNA PROGRESS BAR ---
+  const percentage = (timeLeft / config.timePerSoal) * 100;
+  let barColor = "bg-emerald-500";
+  if (percentage < 50) barColor = "bg-yellow-400";
+  if (percentage < 20) barColor = "bg-red-500";
+
   // PLAY SCREEN
   return (
-    <div className="bg-white rounded-xl shadow-2xl overflow-hidden max-w-md mx-auto border border-slate-200">
-      {/* Header Progress - REVISI MENAMPILKAN JUMLAH BENAR */}
-      <div className="bg-slate-100 p-3 flex justify-between items-center border-b">
-        <span className="font-bold text-slate-700 text-sm">Benar: {progress - 1} / {config.totalSoal}</span>
-        <span className={`font-mono font-bold px-3 py-1 rounded text-sm ${timeLeft <= 3 ? "bg-red-100 text-red-600 animate-pulse" : "bg-blue-100 text-blue-600"}`}>⏱ {timeLeft}s</span>
+    <div className="bg-white rounded-xl shadow-2xl overflow-hidden max-w-md mx-auto border border-slate-200 relative">
+      
+      {/* BEAUTIFUL PROGRESS BAR (TIMER) */}
+      <div className="h-3 w-full bg-slate-100">
+        <div 
+            className={`h-full transition-all duration-100 ease-linear ${barColor}`} 
+            style={{ width: `${percentage}%` }}
+        />
       </div>
 
-      {/* Soal Area */}
+      <div className="p-4 flex justify-between items-center border-b">
+        <span className="font-bold text-slate-700 text-sm">Benar: <span className="text-emerald-600 text-lg">{progress - 1}</span> <span className="text-slate-400">/ {config.totalSoal}</span></span>
+        <span className="font-mono font-bold text-slate-400 text-xs">{timeLeft.toFixed(1)}s</span>
+      </div>
+
       <div className="p-8 text-center space-y-6">
         <div className="text-5xl font-extrabold text-slate-800 tracking-wider">
           {currentQ.q} = ?
@@ -237,7 +288,6 @@ function MathGame() {
             className={`w-32 mx-auto block p-2 text-center text-4xl font-bold border-b-4 outline-none bg-transparent transition-colors ${isWrong ? "border-red-500 text-red-600" : "border-slate-300 focus:border-orange-500 text-slate-800"}`}
             />
             
-            {/* ALERT SALAH */}
             {isWrong && (
                 <div className="absolute left-0 right-0 -bottom-8">
                     <span className="text-red-600 font-bold text-sm animate-pulse bg-red-100 px-2 py-1 rounded">
@@ -247,7 +297,7 @@ function MathGame() {
             )}
         </div>
 
-        <p className="text-xs text-slate-400 italic pt-4">Jawab cepat sebelum waktu habis!</p>
+        <p className="text-xs text-slate-400 italic pt-4">Jawab cepat sebelum bar habis!</p>
       </div>
     </div>
   );
