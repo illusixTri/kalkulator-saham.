@@ -11,7 +11,7 @@ export default function SuperStockApp() {
 
   return (
     <div className="min-h-screen bg-slate-100 font-sans text-slate-800">
-      {/* --- NAVIGATION TABS (MENU ATAS) --- */}
+      {/* --- MENU TAB ATAS --- */}
       <div className="bg-white shadow-sm border-b sticky top-0 z-50">
         <div className="max-w-5xl mx-auto flex">
           <button 
@@ -29,7 +29,7 @@ export default function SuperStockApp() {
         </div>
       </div>
 
-      {/* --- CONTENT AREA --- */}
+      {/* --- AREA KONTEN --- */}
       <div className="p-3 md:p-6">
         <div className="max-w-5xl mx-auto">
           {activeTab === "SCALE" ? <ScaleCalculator /> : <RightIssueCalculator />}
@@ -141,7 +141,6 @@ function ScaleCalculator() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-0">
-        {/* INPUT */}
         <div className="p-4 bg-slate-50 border-r border-slate-200 space-y-3">
           <div className="flex bg-slate-200 rounded-lg p-1">
             <button onClick={() => setMode("SCALE_IN")} className={`flex-1 py-2 text-xs font-bold rounded-md ${mode === "SCALE_IN" ? "bg-white shadow text-emerald-700" : "text-slate-500"}`}>Scale In (Buy)</button>
@@ -161,7 +160,6 @@ function ScaleCalculator() {
             <div className="flex-1 bg-blue-50 border border-blue-100 rounded p-2 h-[38px] flex flex-col justify-center text-[10px] text-blue-800 leading-tight"><div className="flex justify-between items-center"><span>Spread: <strong>{spreadPct.toFixed(1)}%</strong></span><span>Saran: <strong>{autoSteps} Lvl</strong></span></div></div>
           </div>
         </div>
-        {/* OUTPUT */}
         <div className="lg:col-span-2 p-4 bg-white">
           <div className="flex flex-col gap-2 mb-4">
             <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex justify-between items-center"><p className="text-[10px] text-slate-500 uppercase font-bold">Estimasi Uang</p><p className="text-lg font-bold text-slate-800">{formatIDR(summary.totalMoney)}</p></div>
@@ -230,7 +228,6 @@ function RightIssueCalculator() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
-        {/* INPUT */}
         <div className="p-4 bg-slate-50 border-b md:border-b-0 md:border-r border-slate-200 space-y-3">
           <div className="grid grid-cols-3 gap-2">
             <div className="col-span-1"><label className="text-[10px] font-bold text-slate-500 uppercase">Emiten</label><input type="text" value={emiten} onChange={(e) => setEmiten(e.target.value.toUpperCase())} className="w-full p-2 border rounded font-bold uppercase bg-white" /></div>
@@ -240,20 +237,23 @@ function RightIssueCalculator() {
             <div><label className="text-[10px] font-bold text-slate-500 uppercase">Harga Pasar</label><input type="text" value={formatNum(hargaPasar)} onChange={handleInput(setHargaPasar)} className="w-full p-2 border rounded font-bold text-emerald-700" /></div>
             <div><label className="text-[10px] font-bold text-slate-500 uppercase">Harga Tebus</label><input type="text" value={formatNum(hargaTebus)} onChange={handleInput(setHargaTebus)} className="w-full p-2 border rounded font-bold text-orange-600" /></div>
           </div>
+          
+          {/* --- BAGIAN RASIO (YANG DILEBARKAN) --- */}
           <div className="bg-white p-2 border rounded">
              <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Rasio (Lama : Baru)</label>
              <div className="flex items-center gap-2">
-                <input type="number" value={ratioOld} onChange={(e) => setRatioOld(Number(e.target.value))} className="w-16 p-1 border rounded text-center font-bold bg-slate-50" />
+                {/* Saya ubah className w-16 menjadi flex-1 (otomatis lebar) */}
+                <input type="number" value={ratioOld} onChange={(e) => setRatioOld(Number(e.target.value))} className="flex-1 p-2 border rounded text-center font-bold bg-slate-50" />
                 <span className="font-bold text-slate-400 text-sm">:</span>
-                <input type="number" value={ratioNew} onChange={(e) => setRatioNew(Number(e.target.value))} className="w-16 p-1 border rounded text-center font-bold bg-slate-50" />
+                <input type="number" value={ratioNew} onChange={(e) => setRatioNew(Number(e.target.value))} className="flex-1 p-2 border rounded text-center font-bold bg-slate-50" />
              </div>
           </div>
+          
           <div className="bg-slate-50 p-2 rounded-lg border border-slate-200 flex flex-col gap-2">
             <div className="flex items-center justify-between"><label className="text-xs font-bold text-slate-600">Ada Waran?</label><input type="checkbox" checked={hasWaran} onChange={(e) => setHasWaran(e.target.checked)} className="w-5 h-5 accent-indigo-600" /></div>
             {hasWaran && (<div className="flex items-center gap-2 text-xs"><span className="text-slate-500">Tiap</span><input type="number" value={waranOld} onChange={(e) => setWaranOld(Number(e.target.value))} className="w-10 p-1 border rounded text-center bg-white" /><span className="text-slate-500">Dpt</span><input type="number" value={waranNew} onChange={(e) => setWaranNew(Number(e.target.value))} className="w-10 p-1 border rounded text-center bg-white" /></div>)}
           </div>
         </div>
-        {/* HASIL */}
         <div className="p-4 bg-white">
           {result && (
             <div className="space-y-3">
