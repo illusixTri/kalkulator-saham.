@@ -190,7 +190,7 @@ function RightIssueCalculator() {
   const [hargaTebus, setHargaTebus] = useState(250);
   const [ratioOld, setRatioOld] = useState(3);
   const [ratioNew, setRatioNew] = useState(4);
-  const [hasWaran, setHasWaran] = useState(true);
+  const [hasWaran, setHasWaran] = useState(false); // DEFAULT: MATI (FALSE)
   const [waranOld, setWaranOld] = useState(1);
   const [waranNew, setWaranNew] = useState(1);
   const [result, setResult] = useState<any>(null);
@@ -238,21 +238,45 @@ function RightIssueCalculator() {
             <div><label className="text-[10px] font-bold text-slate-500 uppercase">Harga Tebus</label><input type="text" value={formatNum(hargaTebus)} onChange={handleInput(setHargaTebus)} className="w-full p-2 border rounded font-bold text-orange-600" /></div>
           </div>
           
-          {/* --- BAGIAN RASIO (YANG DILEBARKAN) --- */}
+          {/* --- BAGIAN RASIO (FIX LAYOUT & LABEL BARU) --- */}
           <div className="bg-white p-2 border rounded">
-             <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Rasio (Lama : Baru)</label>
-             <div className="flex items-center gap-2">
-                {/* Saya ubah className w-16 menjadi flex-1 (otomatis lebar) */}
-                <input type="number" value={ratioOld} onChange={(e) => setRatioOld(Number(e.target.value))} className="flex-1 p-2 border rounded text-center font-bold bg-slate-50" />
-                <span className="font-bold text-slate-400 text-sm">:</span>
-                <input type="number" value={ratioNew} onChange={(e) => setRatioNew(Number(e.target.value))} className="flex-1 p-2 border rounded text-center font-bold bg-slate-50" />
+             <div className="flex items-center gap-3">
+                <div className="flex-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Rasio Lama (Kiri)</label>
+                    <input type="number" value={ratioOld} onChange={(e) => setRatioOld(Number(e.target.value))} className="w-full p-2 border rounded text-center font-bold bg-slate-50" />
+                </div>
+                <span className="font-bold text-slate-400 text-lg mt-4">:</span>
+                <div className="flex-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Rasio Baru (Kanan)</label>
+                    <input type="number" value={ratioNew} onChange={(e) => setRatioNew(Number(e.target.value))} className="w-full p-2 border rounded text-center font-bold bg-slate-50" />
+                </div>
              </div>
           </div>
           
-          <div className="bg-slate-50 p-2 rounded-lg border border-slate-200 flex flex-col gap-2">
-            <div className="flex items-center justify-between"><label className="text-xs font-bold text-slate-600">Ada Waran?</label><input type="checkbox" checked={hasWaran} onChange={(e) => setHasWaran(e.target.checked)} className="w-5 h-5 accent-indigo-600" /></div>
-            {hasWaran && (<div className="flex items-center gap-2 text-xs"><span className="text-slate-500">Tiap</span><input type="number" value={waranOld} onChange={(e) => setWaranOld(Number(e.target.value))} className="w-10 p-1 border rounded text-center bg-white" /><span className="text-slate-500">Dpt</span><input type="number" value={waranNew} onChange={(e) => setWaranNew(Number(e.target.value))} className="w-10 p-1 border rounded text-center bg-white" /></div>)}
+          {/* --- BAGIAN WARAN (DEFAULT MATI) --- */}
+          <div className="bg-slate-50 p-2 rounded-lg border border-slate-200">
+            <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-bold text-slate-600">Ada Waran?</label>
+                <input type="checkbox" checked={hasWaran} onChange={(e) => setHasWaran(e.target.checked)} className="w-5 h-5 accent-indigo-600" />
+            </div>
+            {hasWaran && (
+                <div className="flex items-center gap-2 text-xs">
+                    <span className="text-slate-500">Tiap</span>
+                    <input type="number" value={waranOld} onChange={(e) => setWaranOld(Number(e.target.value))} className="w-12 p-1 border rounded text-center bg-white" />
+                    <span className="text-slate-500">Dpt</span>
+                    <input type="number" value={waranNew} onChange={(e) => setWaranNew(Number(e.target.value))} className="w-12 p-1 border rounded text-center bg-white" />
+                    <span className="text-slate-500">Waran</span>
+                </div>
+            )}
           </div>
+          
+          {/* --- PENJELASAN STRATEGI (BARU) --- */}
+          {result && (
+              <div className="p-2 bg-blue-50 border border-blue-200 rounded text-[11px] text-blue-900 text-center leading-tight">
+                  Jual induk <strong>{formatNum(result.lotJual)}</strong> lot untuk menebus <strong>{formatNum(result.hakTebus)}</strong> lot.
+              </div>
+          )}
+
         </div>
         <div className="p-4 bg-white">
           {result && (
