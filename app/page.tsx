@@ -59,7 +59,7 @@ export default function SuperStockApp() {
 }
 
 // ==========================================
-// 3. GAME BAPAK-BAPAK
+// 3. GAME BAPAK-BAPAK (UPDATED)
 // ==========================================
 function MathGame() {
   const [gameState, setGameState] = useState<GameState>("LOGIN");
@@ -67,7 +67,7 @@ function MathGame() {
   const [config, setConfig] = useState({ totalSoal: 20, timePerSoal: 5, mode: "RANDOM" as GameMode });
   const [currentQ, setCurrentQ] = useState({ q: "", a: 0 });
   const [inputAns, setInputAns] = useState("");
-  const [progress, setProgress] = useState(0);
+  const [progress, setProgress] = useState(0); // Progress = Jumlah Benar + 1 (Soal Aktif)
   const [timeLeft, setTimeLeft] = useState(0);
   const timerRef = useRef<any>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -135,7 +135,7 @@ function MathGame() {
       }, 1000);
     }
     return () => clearInterval(timerRef.current);
-  }, [gameState, currentQ]); // Reset timer setiap soal baru
+  }, [gameState, currentQ]); 
 
   const checkAnswer = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -151,6 +151,9 @@ function MathGame() {
       }
     }
   };
+
+  // Status Salah: Jika input tidak kosong DAN tidak sama dengan jawaban
+  const isWrong = inputAns !== "" && parseInt(inputAns) !== currentQ.a;
 
   // --- UI RENDER ---
   if (gameState === "LOGIN") return (
@@ -179,18 +182,10 @@ function MathGame() {
             ))}
           </div>
         </div>
-
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Jumlah Soal</label>
-            <input type="number" value={config.totalSoal} onChange={e => setConfig({...config, totalSoal: Number(e.target.value)})} className="w-full p-2 border rounded font-bold text-center" />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Waktu (Detik)</label>
-            <input type="number" value={config.timePerSoal} onChange={e => setConfig({...config, timePerSoal: Number(e.target.value)})} className="w-full p-2 border rounded font-bold text-center" />
-          </div>
+          <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Jumlah Soal</label><input type="number" value={config.totalSoal} onChange={e => setConfig({...config, totalSoal: Number(e.target.value)})} className="w-full p-2 border rounded font-bold text-center" /></div>
+          <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Waktu (Detik)</label><input type="number" value={config.timePerSoal} onChange={e => setConfig({...config, timePerSoal: Number(e.target.value)})} className="w-full p-2 border rounded font-bold text-center" /></div>
         </div>
-
         <button onClick={startGame} className="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold text-lg shadow-md hover:bg-emerald-700 transition-all mt-4">MULAI MAIN!</button>
       </div>
     </div>
@@ -201,7 +196,7 @@ function MathGame() {
       <div className="text-6xl mb-4">⏰</div>
       <h2 className="text-3xl font-bold text-red-600 mb-2">WAKTU HABIS!</h2>
       <p className="text-slate-600 mb-6">Jangan menyerah Pak, coba lagi lebih cepat!</p>
-      <div className="text-lg font-bold bg-white p-3 rounded mb-4">Skor: {progress - 1} / {config.totalSoal}</div>
+      <div className="text-lg font-bold bg-white p-3 rounded mb-4">Benar: {progress - 1} / {config.totalSoal}</div>
       <button onClick={() => setGameState("SETUP")} className="w-full bg-red-600 text-white py-3 rounded-lg font-bold">COBA LAGI</button>
     </div>
   );
@@ -210,7 +205,8 @@ function MathGame() {
     <div className="bg-emerald-50 rounded-xl shadow-lg p-8 max-w-sm mx-auto mt-10 text-center border-2 border-emerald-200">
       <div className="text-6xl mb-4">🏆</div>
       <h2 className="text-3xl font-bold text-emerald-700 mb-2">LUAR BIASA!</h2>
-      <p className="text-slate-600 mb-6">Otak Bapak sangat sehat & encer!</p>
+      <p className="text-slate-600 mb-6">Semua soal berhasil dijawab!</p>
+      <div className="text-lg font-bold bg-white p-3 rounded mb-4">Skor Sempurna: {config.totalSoal} / {config.totalSoal}</div>
       <button onClick={() => setGameState("SETUP")} className="w-full bg-emerald-600 text-white py-3 rounded-lg font-bold">MAIN LAGI</button>
     </div>
   );
@@ -218,10 +214,10 @@ function MathGame() {
   // PLAY SCREEN
   return (
     <div className="bg-white rounded-xl shadow-2xl overflow-hidden max-w-md mx-auto border border-slate-200">
-      {/* Header Progress */}
+      {/* Header Progress - REVISI MENAMPILKAN JUMLAH BENAR */}
       <div className="bg-slate-100 p-3 flex justify-between items-center border-b">
-        <span className="font-bold text-slate-600">Soal {progress} / {config.totalSoal}</span>
-        <span className={`font-mono font-bold px-3 py-1 rounded ${timeLeft <= 3 ? "bg-red-100 text-red-600 animate-pulse" : "bg-blue-100 text-blue-600"}`}>⏱ {timeLeft}s</span>
+        <span className="font-bold text-slate-700 text-sm">Benar: {progress - 1} / {config.totalSoal}</span>
+        <span className={`font-mono font-bold px-3 py-1 rounded text-sm ${timeLeft <= 3 ? "bg-red-100 text-red-600 animate-pulse" : "bg-blue-100 text-blue-600"}`}>⏱ {timeLeft}s</span>
       </div>
 
       {/* Soal Area */}
@@ -230,17 +226,28 @@ function MathGame() {
           {currentQ.q} = ?
         </div>
 
-        <input 
-          ref={inputRef}
-          type="number" 
-          value={inputAns} 
-          onChange={checkAnswer} 
-          placeholder="..." 
-          autoFocus
-          className="w-32 mx-auto block p-2 text-center text-4xl font-bold border-b-4 border-slate-300 focus:border-orange-500 outline-none bg-transparent"
-        />
+        <div className="relative">
+            <input 
+            ref={inputRef}
+            type="number" 
+            value={inputAns} 
+            onChange={checkAnswer} 
+            placeholder="..." 
+            autoFocus
+            className={`w-32 mx-auto block p-2 text-center text-4xl font-bold border-b-4 outline-none bg-transparent transition-colors ${isWrong ? "border-red-500 text-red-600" : "border-slate-300 focus:border-orange-500 text-slate-800"}`}
+            />
+            
+            {/* ALERT SALAH */}
+            {isWrong && (
+                <div className="absolute left-0 right-0 -bottom-8">
+                    <span className="text-red-600 font-bold text-sm animate-pulse bg-red-100 px-2 py-1 rounded">
+                        Salah.. Pikir lagi!
+                    </span>
+                </div>
+            )}
+        </div>
 
-        <p className="text-xs text-slate-400 italic">Isi jawaban yang benar untuk lanjut...</p>
+        <p className="text-xs text-slate-400 italic pt-4">Jawab cepat sebelum waktu habis!</p>
       </div>
     </div>
   );
