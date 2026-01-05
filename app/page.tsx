@@ -203,7 +203,7 @@ function RightIssueCalculator() {
 }
 
 // ==========================================
-// 3. GAME LOGIKA & MEMORI (50 CHARACTERS + SHOW ANSWER)
+// 3. GAME LOGIKA & MEMORI (50 CHARACTERS + FULL KEY)
 // ==========================================
 function MathGame() {
   const [gameState, setGameState] = useState<GameState>("LOGIN");
@@ -217,12 +217,12 @@ function MathGame() {
     mode: "STORY" as GameMode
   });
 
-  const [currentQ, setCurrentQ] = useState({ q: [] as string[], a: 0 });
+  const [currentQ, setCurrentQ] = useState({ q: [] as string[], a: 0, formula: "" });
   const [inputAns, setInputAns] = useState("");
   const [score, setScore] = useState(0); 
   const [questionCount, setQuestionCount] = useState(0); 
   const [timeLeft, setTimeLeft] = useState(0);
-  const [isSkipping, setIsSkipping] = useState(false); // State untuk mode Skip/Show Answer
+  const [isSkipping, setIsSkipping] = useState(false); 
 
   const timerRef = useRef<any>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -262,6 +262,8 @@ function MathGame() {
     const locations = ["Lantai 1", "Lantai 2", "Lantai 3", "Lantai 5", "Pasar", "Stasiun", "Warteg", "Empang", "Pos Ronda", "Indomaret"];
 
     let count = rand(2, 10);
+    let formulaStr = `${count}`; // Start rumus
+    
     const initialSubj = subjects[rand(0, subjects.length-1)];
     let log = [`Awalnya ada ${count} ${initialSubj}.`];
     
@@ -273,20 +275,23 @@ function MathGame() {
         if (isAdd) {
             const num = rand(1, 5);
             count += num;
+            formulaStr += ` + ${num}`; // Catat rumus
             log.push(`Di ${loc}, datang ${num} ${subj}.`);
         } else {
             const num = rand(1, count > 1 ? count - 1 : 1);
             if (count > 0 && num > 0) {
                 count -= num;
+                formulaStr += ` - ${num}`; // Catat rumus
                 log.push(`Di ${loc}, pergi ${num} ${subj}.`);
             } else {
                 const numAdd = rand(1, 3);
                 count += numAdd;
+                formulaStr += ` + ${numAdd}`; // Catat rumus
                 log.push(`Di ${loc}, muncul ${numAdd} ${subj}.`);
             }
         }
     }
-    return { q: log, a: count };
+    return { q: log, a: count, formula: formulaStr };
   };
 
   // --- GENERATE SOAL MATEMATIKA BIASA ---
@@ -294,14 +299,14 @@ function MathGame() {
     const modes = ["ADD", "SUB", "MUL", "DIV"];
     const m = modes[Math.floor(Math.random() * modes.length)];
     const { min, max } = getRanges(config.difficulty);
-    let n1 = 0, n2 = 0, qText = "", a = 0;
+    let n1 = 0, n2 = 0, qText = "", a = 0, f = "";
 
-    if (m === "ADD") { n1 = rand(min, max); n2 = rand(min, max); qText = `${n1} + ${n2} = ?`; a = n1 + n2; }
-    else if (m === "SUB") { n1 = rand(min, max); n2 = rand(min, n1); qText = `${n1} - ${n2} = ?`; a = n1 - n2; }
-    else if (m === "MUL") { n1 = rand(min, 12); n2 = rand(2, 10); qText = `${n1} × ${n2} = ?`; a = n1 * n2; }
-    else if (m === "DIV") { n2 = rand(2, 10); a = rand(min, max); n1 = n2 * a; qText = `${n1} : ${n2} = ?`; }
+    if (m === "ADD") { n1 = rand(min, max); n2 = rand(min, max); qText = `${n1} + ${n2} = ?`; a = n1 + n2; f = `${n1} + ${n2}`; }
+    else if (m === "SUB") { n1 = rand(min, max); n2 = rand(min, n1); qText = `${n1} - ${n2} = ?`; a = n1 - n2; f = `${n1} - ${n2}`; }
+    else if (m === "MUL") { n1 = rand(min, 12); n2 = rand(2, 10); qText = `${n1} × ${n2} = ?`; a = n1 * n2; f = `${n1} x ${n2}`; }
+    else if (m === "DIV") { n2 = rand(2, 10); a = rand(min, max); n1 = n2 * a; qText = `${n1} : ${n2} = ?`; a = a; f = `${n1} : ${n2}`; }
 
-    return { q: [qText], a };
+    return { q: [qText], a, formula: f };
   };
 
   const generateQuestion = () => {
@@ -312,7 +317,6 @@ function MathGame() {
     setCurrentQ(quest);
     setInputAns("");
     setIsSkipping(false);
-    // Focus after render
     setTimeout(() => { if(inputRef.current) inputRef.current.focus(); }, 100);
   };
 
@@ -324,7 +328,7 @@ function MathGame() {
     generateQuestion();
   };
 
-  // --- TIMER (Pause saat Skipping/Show Answer) ---
+  // --- TIMER ---
   useEffect(() => {
     if (gameState === "PLAY" && !isSkipping) {
       timerRef.current = setInterval(() => {
@@ -342,7 +346,7 @@ function MathGame() {
   }, [gameState, isSkipping]);
 
   const checkAnswer = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (isSkipping) return; // Kunci input saat skip
+    if (isSkipping) return;
     const val = e.target.value;
     setInputAns(val);
     const numVal = parseInt(val);
@@ -366,20 +370,21 @@ function MathGame() {
     }
   };
 
-  // --- LOGIKA SKIP & SHOW ANSWER ---
+  // --- LOGIKA SHOW ANSWER ---
   const handleGiveUp = () => {
-    setIsSkipping(true); // Pause Timer & Kunci Input
-    setInputAns(currentQ.a.toString()); // Tampilkan Jawaban Benar
+    setIsSkipping(true); 
+    // Tampilkan Kunci Jawaban di Input (untuk angka)
+    setInputAns(currentQ.a.toString()); 
     
-    // Tunggu 1.5 detik agar user bisa lihat jawaban
+    // Tahan 2 detik biar baca rumusnya
     setTimeout(() => {
         if (questionCount >= config.totalSoal) {
-            setGameState("WIN"); // Selesai
+            setGameState("WIN"); 
         } else {
             setQuestionCount(c => c + 1);
-            generateQuestion(); // Lanjut soal
+            generateQuestion(); 
         }
-    }, 1500);
+    }, 2000);
   };
 
   const isWrong = !isSkipping && inputAns !== "" && parseInt(inputAns) !== currentQ.a;
@@ -399,54 +404,23 @@ function MathGame() {
   if (gameState === "SETUP") return (
     <div className="bg-white rounded-xl shadow-lg p-6 max-w-md mx-auto mt-4">
       <h2 className="text-xl font-bold text-slate-700 mb-4 border-b pb-2">⚙️ Setting Game</h2>
-      
       <div className="space-y-4">
-        <div>
-          <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Pilih Mode</label>
-          <div className="flex gap-2">
-             <button onClick={() => setConfig({...config, mode: "STORY"})} className={`flex-1 p-3 rounded-lg text-sm font-bold border-2 transition-all ${config.mode === "STORY" ? "border-orange-500 bg-orange-50 text-orange-600" : "border-slate-100 bg-white text-slate-400"}`}>
-                📖 Cerita (Logika)
-             </button>
-             <button onClick={() => setConfig({...config, mode: "MATH"})} className={`flex-1 p-3 rounded-lg text-sm font-bold border-2 transition-all ${config.mode === "MATH" ? "border-blue-500 bg-blue-50 text-blue-600" : "border-slate-100 bg-white text-slate-400"}`}>
-                🧮 Hitungan (Cepat)
-             </button>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Tingkat Kesulitan</label>
-          <div className="grid grid-cols-3 gap-2">
-            {(["PEMULA", "MENENGAH", "PRO"] as Difficulty[]).map((d) => (
-              <button key={d} onClick={() => setConfig({...config, difficulty: d})} className={`p-2 rounded text-[10px] font-bold transition-all ${config.difficulty === d ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-500"}`}>{d}</button>
-            ))}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Jumlah Soal</label><input type="number" value={config.totalSoal} onChange={e => setConfig({...config, totalSoal: Number(e.target.value)})} className="w-full p-2 border rounded font-bold text-center" /></div>
-          <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Waktu (Detik)</label><input type="number" value={config.totalTime} onChange={e => setConfig({...config, totalTime: Number(e.target.value)})} className="w-full p-2 border rounded font-bold text-center" /></div>
-        </div>
+        <div><label className="block text-xs font-bold text-slate-500 uppercase mb-2">Pilih Mode</label><div className="flex gap-2"><button onClick={() => setConfig({...config, mode: "STORY"})} className={`flex-1 p-3 rounded-lg text-sm font-bold border-2 transition-all ${config.mode === "STORY" ? "border-orange-500 bg-orange-50 text-orange-600" : "border-slate-100 bg-white text-slate-400"}`}>📖 Cerita (Logika)</button><button onClick={() => setConfig({...config, mode: "MATH"})} className={`flex-1 p-3 rounded-lg text-sm font-bold border-2 transition-all ${config.mode === "MATH" ? "border-blue-500 bg-blue-50 text-blue-600" : "border-slate-100 bg-white text-slate-400"}`}>🧮 Hitungan (Cepat)</button></div></div>
+        <div><label className="block text-xs font-bold text-slate-500 uppercase mb-2">Tingkat Kesulitan</label><div className="grid grid-cols-3 gap-2">{(["PEMULA", "MENENGAH", "PRO"] as Difficulty[]).map((d) => (<button key={d} onClick={() => setConfig({...config, difficulty: d})} className={`p-2 rounded text-[10px] font-bold transition-all ${config.difficulty === d ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-500"}`}>{d}</button>))}</div></div>
+        <div className="grid grid-cols-2 gap-4"><div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Jumlah Soal</label><input type="number" value={config.totalSoal} onChange={e => setConfig({...config, totalSoal: Number(e.target.value)})} className="w-full p-2 border rounded font-bold text-center" /></div><div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Waktu (Detik)</label><input type="number" value={config.totalTime} onChange={e => setConfig({...config, totalTime: Number(e.target.value)})} className="w-full p-2 border rounded font-bold text-center" /></div></div>
         <button onClick={startGame} className="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold text-lg shadow-md hover:bg-emerald-700 transition-all mt-4">MULAI MAIN!</button>
       </div>
     </div>
   );
 
-  // --- HASIL AKHIR ---
   if (gameState === "WIN" || gameState === "GAMEOVER") {
     const percentage = (score / config.totalSoal) * 100;
     const isGreat = percentage >= 80;
-
     return (
       <div className={`rounded-xl shadow-lg p-8 max-w-sm mx-auto mt-10 text-center border-4 ${isGreat ? "bg-emerald-50 border-emerald-200" : "bg-slate-50 border-slate-200"}`}>
         <div className="text-6xl mb-4">{isGreat ? "🧠" : "😅"}</div>
         <h2 className="text-2xl font-bold text-slate-800 mb-1">{gameState === "GAMEOVER" ? "WAKTU HABIS!" : "SELESAI!"}</h2>
-        
-        <div className="bg-white p-4 rounded-xl shadow-sm my-6">
-            <p className="text-xs text-slate-400 uppercase font-bold">Skor Akhir</p>
-            <div className="text-4xl font-black text-slate-800">{score} <span className="text-lg text-slate-400 font-normal">/ {config.totalSoal}</span></div>
-            <div className={`mt-2 font-bold ${isGreat ? "text-emerald-600" : "text-orange-500"}`}>({percentage.toFixed(0)}% Benar)</div>
-        </div>
-
+        <div className="bg-white p-4 rounded-xl shadow-sm my-6"><p className="text-xs text-slate-400 uppercase font-bold">Skor Akhir</p><div className="text-4xl font-black text-slate-800">{score} <span className="text-lg text-slate-400 font-normal">/ {config.totalSoal}</span></div><div className={`mt-2 font-bold ${isGreat ? "text-emerald-600" : "text-orange-500"}`}>({percentage.toFixed(0)}% Benar)</div></div>
         {isGreat ? <div className="bg-emerald-100 text-emerald-800 p-3 rounded-lg text-sm font-bold mb-6 animate-bounce">"Hebat Pak! Otak masih sangat encer!" 🌟</div> : <p className="text-slate-500 text-sm mb-6">Lumayan Pak. Latihan lagi biar makin tajam!</p>}
         <button onClick={() => setGameState("SETUP")} className="w-full bg-slate-700 text-white py-3 rounded-lg font-bold">MAIN LAGI</button>
       </div>
@@ -455,67 +429,40 @@ function MathGame() {
 
   // --- PLAY SCREEN ---
   const percentage = (timeLeft / config.totalTime) * 100;
-  let barColor = "bg-emerald-500";
-  if (percentage < 50) barColor = "bg-yellow-400";
-  if (percentage < 20) barColor = "bg-red-500";
+  let barColor = "bg-emerald-500"; if (percentage < 50) barColor = "bg-yellow-400"; if (percentage < 20) barColor = "bg-red-500";
 
   return (
     <div className="bg-white rounded-xl shadow-2xl overflow-hidden max-w-md mx-auto border border-slate-200 relative">
       <div className="h-4 w-full bg-slate-100"><div className={`h-full transition-all duration-100 ease-linear ${barColor}`} style={{ width: `${percentage}%` }}/></div>
-
-      <div className="p-4 flex justify-between items-center border-b bg-slate-50">
-        <span className="font-bold text-slate-700 text-xs uppercase">Soal <span className="text-base text-slate-900">{questionCount}</span> / {config.totalSoal}</span>
-        <span className="font-mono font-bold text-slate-500 text-sm">⏱ {timeLeft.toFixed(0)}s</span>
-      </div>
-
+      <div className="p-4 flex justify-between items-center border-b bg-slate-50"><span className="font-bold text-slate-700 text-xs uppercase">Soal <span className="text-base text-slate-900">{questionCount}</span> / {config.totalSoal}</span><span className="font-mono font-bold text-slate-500 text-sm">⏱ {timeLeft.toFixed(0)}s</span></div>
+      
       <div className="p-6 text-center space-y-6 relative">
-        {/* AREA SOAL - LOGIKA CERITA vs MATEMATIKA */}
         <div className="py-2">
             {config.mode === "STORY" ? (
                 <div className="bg-blue-50 p-4 rounded-lg text-left space-y-3 text-sm text-slate-700 font-medium border border-blue-100">
                     <div className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-1">Skenario:</div>
-                    {currentQ.q.map((line, idx) => (
-                        <div key={idx} className="flex gap-2 items-start">
-                            <span className="text-blue-300 font-bold select-none">•</span>
-                            <span className="leading-snug">{line}</span>
-                        </div>
-                    ))}
-                    <div className="pt-3 font-bold text-blue-800 border-t border-blue-200 mt-2 text-center">
-                        Pertanyaan: Berapa jumlah akhir?
-                    </div>
+                    {currentQ.q.map((line, idx) => (<div key={idx} className="flex gap-2 items-start"><span className="text-blue-300 font-bold select-none">•</span><span className="leading-snug">{line}</span></div>))}
+                    <div className="pt-3 font-bold text-blue-800 border-t border-blue-200 mt-2 text-center">Pertanyaan: Berapa jumlah akhir?</div>
                 </div>
-            ) : (
-                <div className="text-5xl font-extrabold text-slate-800 tracking-wider pt-4">{currentQ.q[0]}</div>
-            )}
+            ) : (<div className="text-5xl font-extrabold text-slate-800 tracking-wider pt-4">{currentQ.q[0]}</div>)}
         </div>
 
         <div className="relative">
-            <input 
-                ref={inputRef} 
-                type="number" 
-                value={inputAns} 
-                onChange={checkAnswer} 
-                placeholder="..." 
-                autoFocus 
-                disabled={isSkipping} // Disabled saat lihat jawaban
-                className={`w-32 mx-auto block p-2 text-center text-4xl font-bold border-b-4 outline-none bg-transparent transition-colors 
-                    ${isSkipping ? "border-blue-500 text-blue-600 animate-pulse" : // Warna Biru saat Skip
-                      isWrong ? "border-red-500 text-red-600" : 
-                      "border-slate-300 focus:border-orange-500 text-slate-800"}`}
-            />
+            <input ref={inputRef} type="number" value={inputAns} onChange={checkAnswer} placeholder="..." autoFocus disabled={isSkipping} className={`w-32 mx-auto block p-2 text-center text-4xl font-bold border-b-4 outline-none bg-transparent transition-colors ${isSkipping ? "border-blue-500 text-blue-600 animate-pulse" : isWrong ? "border-red-500 text-red-600" : "border-slate-300 focus:border-orange-500 text-slate-800"}`}/>
             {isWrong && !isSkipping && (<div className="absolute left-0 right-0 -bottom-6"><span className="text-red-600 font-bold text-xs">Salah.. Pikir lagi!</span></div>)}
-            {isSkipping && (<div className="absolute left-0 right-0 -bottom-6"><span className="text-blue-600 font-bold text-xs">Jawaban Benar</span></div>)}
+            
+            {/* INI FITUR KUNCI JAWABAN YANG MUNCUL SAAT SKIP */}
+            {isSkipping && (
+                <div className="absolute left-0 right-0 -bottom-12 flex flex-col items-center animate-bounce">
+                    <span className="text-blue-600 font-bold text-[10px] uppercase tracking-wide">Rumus & Jawaban:</span>
+                    <span className="text-blue-800 font-mono text-sm font-bold bg-blue-100 px-3 py-1 rounded shadow-sm border border-blue-200 whitespace-nowrap">
+                        {currentQ.formula} = {currentQ.a}
+                    </span>
+                </div>
+            )}
         </div>
 
-        <div className="pt-4">
-            <button 
-                onClick={handleGiveUp} 
-                disabled={isSkipping} 
-                className="text-xs font-bold text-slate-400 hover:text-red-500 hover:bg-red-50 px-4 py-2 rounded-full transition-colors border border-transparent hover:border-red-100"
-            >
-                {isSkipping ? "Lanjut..." : "🏳️ Lewati / Menyerah"}
-            </button>
-        </div>
+        <div className="pt-6"><button onClick={handleGiveUp} disabled={isSkipping} className="text-xs font-bold text-slate-400 hover:text-red-500 hover:bg-red-50 px-4 py-2 rounded-full transition-colors border border-transparent hover:border-red-100">{isSkipping ? "Lanjut..." : "🏳️ Lewati / Menyerah"}</button></div>
       </div>
     </div>
   );
