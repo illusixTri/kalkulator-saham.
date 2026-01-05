@@ -203,7 +203,7 @@ function RightIssueCalculator() {
 }
 
 // ==========================================
-// 3. GAME LOGIKA & MEMORI (50 CHARACTERS + FULL KEY)
+// 3. GAME LOGIKA & MEMORI (50 CHARACTERS + CATEGORY LOGIC)
 // ==========================================
 function MathGame() {
   const [gameState, setGameState] = useState<GameState>("LOGIN");
@@ -242,27 +242,44 @@ function MathGame() {
     return { min: 50, max: 500, storySteps: 6 };
   };
 
-  // --- GENERATE SOAL CERITA (50 KARAKTER LUCU) ---
+  // --- GENERATE SOAL CERITA (LOGIKA KATEGORI) ---
   const generateStory = () => {
     const { storySteps } = getRanges(config.difficulty);
-    const subjects = [
-        "Kakek Sakti", "Nenek Gaul", "Pak RT", "Bu RT", "Kang Galon", "Abang Ojol", 
-        "Satpam Komplek", "Tukang Parkir Gaib", "Bocil Epep", "Ibu Arisan", "Pak Haji", 
-        "Hansip Ngantuk", "Emak-emak Matic", "Kucing Oren Bar-bar", "Ayam Jago", 
-        "Bebek Kwek-kwek", "Kambing Kurban", "Kecoak Terbang", "Cicak di Dinding", 
-        "Nyamuk Nakal", "Semut Merah", "Badut Mampang", "Ondel-ondel", "Pocong Loncat", 
-        "Tuyul Iseng", "Genderuwo Pemalu", "Kuntilanak Merah", "Alien Nyasar", 
-        "Robot Transformer", "Ultraman", "Galon Aqua", "Tabung Gas 3kg", "Wajan Gosong", 
-        "Sendal Jepit Putus", "Helm Ojol", "Panci Emak", "Sapu Lidi", "Kipas Angin Rusak", 
-        "Televisi Tabung", "Radio Jadul", "🔴 Bola Merah", "🔵 Kotak Biru", "🟡 Bintang Kuning", 
-        "🟢 Segitiga Hijau", "🟣 Lingkaran Ungu", "🟫 Balok Coklat", "⬛ Persegi Hitam", 
-        "⚪ Awan Putih", "🔥 Api Membara", "💧 Tetes Air"
-    ];
     
+    // DEFINISI KATEGORI SUBJEK
+    const categories: Record<string, string[]> = {
+        "MANUSIA": [
+            "Kakek Sakti", "Nenek Gaul", "Pak RT", "Bu RT", "Kang Galon", "Abang Ojol", 
+            "Satpam Komplek", "Tukang Parkir", "Bocil Epep", "Ibu Arisan", "Pak Haji", 
+            "Hansip Ngantuk", "Emak-emak Matic", "Supir Angkot", "Anak Sekolah"
+        ],
+        "HEWAN": [
+            "Kucing Oren", "Ayam Jago", "Bebek Kwek-kwek", "Kambing Kurban", "Kecoak Terbang", 
+            "Cicak", "Nyamuk Nakal", "Semut Merah", "Burung Gereja", "Tikus Kantor"
+        ],
+        "BENDA": [
+            "Galon Aqua", "Tabung Gas 3kg", "Wajan Gosong", "Sendal Jepit", "Helm Ojol", 
+            "Panci Emak", "Sapu Lidi", "Kipas Angin", "Televisi Tabung", "Radio Jadul"
+        ],
+        "MISTIS_FIKSI": [
+            "Badut Mampang", "Ondel-ondel", "Pocong Loncat", "Tuyul Iseng", "Genderuwo", 
+            "Kuntilanak", "Alien Nyasar", "Robot Transformer", "Ultraman", "Batman"
+        ],
+        "BENTUK": [
+            "Bola Merah", "Kotak Biru", "Bintang Kuning", "Segitiga Hijau", "Lingkaran Ungu", 
+            "Balok Coklat", "Persegi Hitam", "Awan Putih", "Api Membara", "Tetes Air"
+        ]
+    };
+
+    // 1. PILIH KATEGORI ACAK DULU
+    const categoryKeys = Object.keys(categories);
+    const selectedCategory = categoryKeys[rand(0, categoryKeys.length - 1)];
+    const subjects = categories[selectedCategory]; // Gunakan subjek dari kategori terpilih saja
+
     const locations = ["Lantai 1", "Lantai 2", "Lantai 3", "Lantai 5", "Pasar", "Stasiun", "Warteg", "Empang", "Pos Ronda", "Indomaret"];
 
     let count = rand(2, 10);
-    let formulaStr = `${count}`; // Start rumus
+    let formulaStr = `${count}`; 
     
     const initialSubj = subjects[rand(0, subjects.length-1)];
     let log = [`Awalnya ada ${count} ${initialSubj}.`];
@@ -275,18 +292,18 @@ function MathGame() {
         if (isAdd) {
             const num = rand(1, 5);
             count += num;
-            formulaStr += ` + ${num}`; // Catat rumus
+            formulaStr += ` + ${num}`; 
             log.push(`Di ${loc}, datang ${num} ${subj}.`);
         } else {
             const num = rand(1, count > 1 ? count - 1 : 1);
             if (count > 0 && num > 0) {
                 count -= num;
-                formulaStr += ` - ${num}`; // Catat rumus
+                formulaStr += ` - ${num}`; 
                 log.push(`Di ${loc}, pergi ${num} ${subj}.`);
             } else {
                 const numAdd = rand(1, 3);
                 count += numAdd;
-                formulaStr += ` + ${numAdd}`; // Catat rumus
+                formulaStr += ` + ${numAdd}`; 
                 log.push(`Di ${loc}, muncul ${numAdd} ${subj}.`);
             }
         }
@@ -373,10 +390,7 @@ function MathGame() {
   // --- LOGIKA SHOW ANSWER ---
   const handleGiveUp = () => {
     setIsSkipping(true); 
-    // Tampilkan Kunci Jawaban di Input (untuk angka)
     setInputAns(currentQ.a.toString()); 
-    
-    // Tahan 2 detik biar baca rumusnya
     setTimeout(() => {
         if (questionCount >= config.totalSoal) {
             setGameState("WIN"); 
@@ -427,7 +441,6 @@ function MathGame() {
     );
   }
 
-  // --- PLAY SCREEN ---
   const percentage = (timeLeft / config.totalTime) * 100;
   let barColor = "bg-emerald-500"; if (percentage < 50) barColor = "bg-yellow-400"; if (percentage < 20) barColor = "bg-red-500";
 
@@ -450,16 +463,7 @@ function MathGame() {
         <div className="relative">
             <input ref={inputRef} type="number" value={inputAns} onChange={checkAnswer} placeholder="..." autoFocus disabled={isSkipping} className={`w-32 mx-auto block p-2 text-center text-4xl font-bold border-b-4 outline-none bg-transparent transition-colors ${isSkipping ? "border-blue-500 text-blue-600 animate-pulse" : isWrong ? "border-red-500 text-red-600" : "border-slate-300 focus:border-orange-500 text-slate-800"}`}/>
             {isWrong && !isSkipping && (<div className="absolute left-0 right-0 -bottom-6"><span className="text-red-600 font-bold text-xs">Salah.. Pikir lagi!</span></div>)}
-            
-            {/* INI FITUR KUNCI JAWABAN YANG MUNCUL SAAT SKIP */}
-            {isSkipping && (
-                <div className="absolute left-0 right-0 -bottom-12 flex flex-col items-center animate-bounce">
-                    <span className="text-blue-600 font-bold text-[10px] uppercase tracking-wide">Rumus & Jawaban:</span>
-                    <span className="text-blue-800 font-mono text-sm font-bold bg-blue-100 px-3 py-1 rounded shadow-sm border border-blue-200 whitespace-nowrap">
-                        {currentQ.formula} = {currentQ.a}
-                    </span>
-                </div>
-            )}
+            {isSkipping && (<div className="absolute left-0 right-0 -bottom-12 flex flex-col items-center animate-bounce"><span className="text-blue-600 font-bold text-[10px] uppercase tracking-wide">Rumus & Jawaban:</span><span className="text-blue-800 font-mono text-sm font-bold bg-blue-100 px-3 py-1 rounded shadow-sm border border-blue-200 whitespace-nowrap">{currentQ.formula} = {currentQ.a}</span></div>)}
         </div>
 
         <div className="pt-6"><button onClick={handleGiveUp} disabled={isSkipping} className="text-xs font-bold text-slate-400 hover:text-red-500 hover:bg-red-50 px-4 py-2 rounded-full transition-colors border border-transparent hover:border-red-100">{isSkipping ? "Lanjut..." : "🏳️ Lewati / Menyerah"}</button></div>
