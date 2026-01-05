@@ -52,7 +52,7 @@ export default function SuperStockApp() {
         </a>
         <a href="https://wa.me/6281299053961" target="_blank" rel="noopener noreferrer" className="flex-1 bg-[#25D366] text-white p-3 flex items-center justify-center gap-2 hover:bg-[#20bd5a] transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="fill-white stroke-none"><path d="M17.498 14.382c-.301-.15-1.767-.867-2.04-.966-.273-.101-.473-.15-.673.15-.197.295-.771.964-.944 1.162-.175.195-.349.21-.646.075-.3-.15-1.263-.465-2.403-1.485-.888-.795-1.484-1.77-1.66-2.07-.174-.3-.019-.465.13-.615.136-.135.303-.345.451-.523.151-.18.2-.3.301-.497.098-.196.05-.371-.025-.523-.075-.15-.672-1.62-.922-2.206-.24-.584-.487-.51-.672-.51-.172-.005-.372-.005-.572-.005-.201 0-.523.074-.797.372-.271.297-1.047 1.016-1.047 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.767-.721 2.016-1.418.25-.699.25-1.297.174-1.418-.075-.119-.272-.196-.572-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.07 0C5.537 0 .227 5.33.227 11.87c0 2.089.544 4.128 1.577 5.939L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-          <div className="flex flex-col leading-none text-left"><span className="text-[9px] opacity-80 uppercase font-bold">Gabung</span><span className="font-bold text-sm">Grup RLA</span></div>
+          <div className="flex flex-col leading-none text-left"><span className="text-[9px] opacity-80 uppercase font-bold">Chat Admin</span><span className="font-bold text-sm">WhatsApp</span></div>
         </a>
       </div>
     </div>
@@ -203,7 +203,7 @@ function RightIssueCalculator() {
 }
 
 // ==========================================
-// 3. GAME LOGIKA & MEMORI (50 CHARACTERS EDITION)
+// 3. GAME LOGIKA & MEMORI (50 CHARACTERS + SHOW ANSWER)
 // ==========================================
 function MathGame() {
   const [gameState, setGameState] = useState<GameState>("LOGIN");
@@ -222,7 +222,7 @@ function MathGame() {
   const [score, setScore] = useState(0); 
   const [questionCount, setQuestionCount] = useState(0); 
   const [timeLeft, setTimeLeft] = useState(0);
-  const [lastAnswer, setLastAnswer] = useState<string | null>(null); 
+  const [isSkipping, setIsSkipping] = useState(false); // State untuk mode Skip/Show Answer
 
   const timerRef = useRef<any>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -245,8 +245,6 @@ function MathGame() {
   // --- GENERATE SOAL CERITA (50 KARAKTER LUCU) ---
   const generateStory = () => {
     const { storySteps } = getRanges(config.difficulty);
-    
-    // DAFTAR 50 KARAKTER LUCU & UNIK
     const subjects = [
         "Kakek Sakti", "Nenek Gaul", "Pak RT", "Bu RT", "Kang Galon", "Abang Ojol", 
         "Satpam Komplek", "Tukang Parkir Gaib", "Bocil Epep", "Ibu Arisan", "Pak Haji", 
@@ -270,7 +268,7 @@ function MathGame() {
     for (let i = 0; i < storySteps; i++) {
         const loc = locations[rand(0, locations.length-1)];
         const subj = subjects[rand(0, subjects.length-1)];
-        const isAdd = Math.random() > 0.5; // 50:50 peluang nambah/kurang
+        const isAdd = Math.random() > 0.5; 
         
         if (isAdd) {
             const num = rand(1, 5);
@@ -313,8 +311,9 @@ function MathGame() {
 
     setCurrentQ(quest);
     setInputAns("");
-    setLastAnswer(null);
-    if(inputRef.current) inputRef.current.focus();
+    setIsSkipping(false);
+    // Focus after render
+    setTimeout(() => { if(inputRef.current) inputRef.current.focus(); }, 100);
   };
 
   const startGame = () => {
@@ -325,9 +324,9 @@ function MathGame() {
     generateQuestion();
   };
 
-  // --- TIMER ---
+  // --- TIMER (Pause saat Skipping/Show Answer) ---
   useEffect(() => {
-    if (gameState === "PLAY") {
+    if (gameState === "PLAY" && !isSkipping) {
       timerRef.current = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 0.1) {
@@ -340,9 +339,10 @@ function MathGame() {
       }, 100);
     }
     return () => clearInterval(timerRef.current);
-  }, [gameState]);
+  }, [gameState, isSkipping]);
 
   const checkAnswer = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isSkipping) return; // Kunci input saat skip
     const val = e.target.value;
     setInputAns(val);
     const numVal = parseInt(val);
@@ -366,17 +366,23 @@ function MathGame() {
     }
   };
 
+  // --- LOGIKA SKIP & SHOW ANSWER ---
   const handleGiveUp = () => {
-    setLastAnswer(`Jawabannya: ${currentQ.a}`);
-    if (questionCount >= config.totalSoal) {
-        setGameState("WIN"); 
-    } else {
-        setQuestionCount(c => c + 1);
-        generateQuestion();
-    }
+    setIsSkipping(true); // Pause Timer & Kunci Input
+    setInputAns(currentQ.a.toString()); // Tampilkan Jawaban Benar
+    
+    // Tunggu 1.5 detik agar user bisa lihat jawaban
+    setTimeout(() => {
+        if (questionCount >= config.totalSoal) {
+            setGameState("WIN"); // Selesai
+        } else {
+            setQuestionCount(c => c + 1);
+            generateQuestion(); // Lanjut soal
+        }
+    }, 1500);
   };
 
-  const isWrong = inputAns !== "" && parseInt(inputAns) !== currentQ.a;
+  const isWrong = !isSkipping && inputAns !== "" && parseInt(inputAns) !== currentQ.a;
 
   // --- UI RENDER ---
   if (gameState === "LOGIN") return (
@@ -418,7 +424,7 @@ function MathGame() {
 
         <div className="grid grid-cols-2 gap-4">
           <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Jumlah Soal</label><input type="number" value={config.totalSoal} onChange={e => setConfig({...config, totalSoal: Number(e.target.value)})} className="w-full p-2 border rounded font-bold text-center" /></div>
-          <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Total Waktu (Detik)</label><input type="number" value={config.totalTime} onChange={e => setConfig({...config, totalTime: Number(e.target.value)})} className="w-full p-2 border rounded font-bold text-center" /></div>
+          <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Waktu (Detik)</label><input type="number" value={config.totalTime} onChange={e => setConfig({...config, totalTime: Number(e.target.value)})} className="w-full p-2 border rounded font-bold text-center" /></div>
         </div>
         <button onClick={startGame} className="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold text-lg shadow-md hover:bg-emerald-700 transition-all mt-4">MULAI MAIN!</button>
       </div>
@@ -463,8 +469,6 @@ function MathGame() {
       </div>
 
       <div className="p-6 text-center space-y-6 relative">
-        {lastAnswer && (<div className="bg-orange-100 text-orange-800 text-xs p-2 rounded animate-pulse absolute top-2 left-0 right-0 mx-6">Soal sebelumnya: <strong>{lastAnswer}</strong> (Tidak dinilai)</div>)}
-
         {/* AREA SOAL - LOGIKA CERITA vs MATEMATIKA */}
         <div className="py-2">
             {config.mode === "STORY" ? (
@@ -486,11 +490,32 @@ function MathGame() {
         </div>
 
         <div className="relative">
-            <input ref={inputRef} type="number" value={inputAns} onChange={checkAnswer} placeholder="..." autoFocus className={`w-32 mx-auto block p-2 text-center text-4xl font-bold border-b-4 outline-none bg-transparent transition-colors ${isWrong ? "border-red-500 text-red-600" : "border-slate-300 focus:border-orange-500 text-slate-800"}`}/>
-            {isWrong && (<div className="absolute left-0 right-0 -bottom-6"><span className="text-red-600 font-bold text-xs">Salah.. Pikir lagi!</span></div>)}
+            <input 
+                ref={inputRef} 
+                type="number" 
+                value={inputAns} 
+                onChange={checkAnswer} 
+                placeholder="..." 
+                autoFocus 
+                disabled={isSkipping} // Disabled saat lihat jawaban
+                className={`w-32 mx-auto block p-2 text-center text-4xl font-bold border-b-4 outline-none bg-transparent transition-colors 
+                    ${isSkipping ? "border-blue-500 text-blue-600 animate-pulse" : // Warna Biru saat Skip
+                      isWrong ? "border-red-500 text-red-600" : 
+                      "border-slate-300 focus:border-orange-500 text-slate-800"}`}
+            />
+            {isWrong && !isSkipping && (<div className="absolute left-0 right-0 -bottom-6"><span className="text-red-600 font-bold text-xs">Salah.. Pikir lagi!</span></div>)}
+            {isSkipping && (<div className="absolute left-0 right-0 -bottom-6"><span className="text-blue-600 font-bold text-xs">Jawaban Benar</span></div>)}
         </div>
 
-        <div className="pt-4"><button onClick={handleGiveUp} className="text-xs font-bold text-slate-400 hover:text-red-500 hover:bg-red-50 px-4 py-2 rounded-full transition-colors border border-transparent hover:border-red-100">🏳️ Lewati / Menyerah</button></div>
+        <div className="pt-4">
+            <button 
+                onClick={handleGiveUp} 
+                disabled={isSkipping} 
+                className="text-xs font-bold text-slate-400 hover:text-red-500 hover:bg-red-50 px-4 py-2 rounded-full transition-colors border border-transparent hover:border-red-100"
+            >
+                {isSkipping ? "Lanjut..." : "🏳️ Lewati / Menyerah"}
+            </button>
+        </div>
       </div>
     </div>
   );
