@@ -8,6 +8,7 @@ type Method = "NORMAL" | "MARTINGALE" | "FIBONACCI";
 type GameMode = "MATH" | "STORY"; 
 type Difficulty = "PEMULA" | "MENENGAH" | "PRO";
 type GameState = "LOGIN" | "SETUP" | "PLAY" | "GAMEOVER" | "WIN";
+type Feedback = "NONE" | "CORRECT" | "WRONG";
 
 export default function SuperStockApp() {
   const [activeTab, setActiveTab] = useState<Tab>("SCALE");
@@ -203,13 +204,11 @@ function RightIssueCalculator() {
 }
 
 // ==========================================
-// 3. GAME LOGIKA & MEMORI (50 CHARACTERS + CATEGORY LOGIC)
+// 3. GAME LOGIKA & MEMORI (FINAL LOGIC & FEEDBACK)
 // ==========================================
 function MathGame() {
   const [gameState, setGameState] = useState<GameState>("LOGIN");
   const [password, setPassword] = useState("");
-  
-  // CONFIG GLOBAL
   const [config, setConfig] = useState({ 
     totalSoal: 10, 
     totalTime: 300, 
@@ -223,6 +222,7 @@ function MathGame() {
   const [questionCount, setQuestionCount] = useState(0); 
   const [timeLeft, setTimeLeft] = useState(0);
   const [isSkipping, setIsSkipping] = useState(false); 
+  const [feedback, setFeedback] = useState<Feedback>("NONE"); // STATE FEEDBACK BARU
 
   const timerRef = useRef<any>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -235,83 +235,78 @@ function MathGame() {
 
   const rand = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
 
-  // --- SETTING KESULITAN ---
   const getRanges = (diff: Difficulty) => {
     if (diff === "PEMULA") return { min: 1, max: 20, storySteps: 3 };
     if (diff === "MENENGAH") return { min: 10, max: 100, storySteps: 4 };
     return { min: 50, max: 500, storySteps: 6 };
   };
 
-  // --- GENERATE SOAL CERITA (LOGIKA KATEGORI) ---
+  // --- GENERATE SOAL CERITA (DENGAN SKENARIO KONSISTEN) ---
   const generateStory = () => {
     const { storySteps } = getRanges(config.difficulty);
     
-    // DEFINISI KATEGORI SUBJEK
-    const categories: Record<string, string[]> = {
-        "MANUSIA": [
-            "Kakek Sakti", "Nenek Gaul", "Pak RT", "Bu RT", "Kang Galon", "Abang Ojol", 
-            "Satpam Komplek", "Tukang Parkir", "Bocil Epep", "Ibu Arisan", "Pak Haji", 
-            "Hansip Ngantuk", "Emak-emak Matic", "Supir Angkot", "Anak Sekolah"
-        ],
-        "HEWAN": [
-            "Kucing Oren", "Ayam Jago", "Bebek Kwek-kwek", "Kambing Kurban", "Kecoak Terbang", 
-            "Cicak", "Nyamuk Nakal", "Semut Merah", "Burung Gereja", "Tikus Kantor"
-        ],
-        "BENDA": [
-            "Galon Aqua", "Tabung Gas 3kg", "Wajan Gosong", "Sendal Jepit", "Helm Ojol", 
-            "Panci Emak", "Sapu Lidi", "Kipas Angin", "Televisi Tabung", "Radio Jadul"
-        ],
-        "MISTIS_FIKSI": [
-            "Badut Mampang", "Ondel-ondel", "Pocong Loncat", "Tuyul Iseng", "Genderuwo", 
-            "Kuntilanak", "Alien Nyasar", "Robot Transformer", "Ultraman", "Batman"
-        ],
-        "BENTUK": [
-            "Bola Merah", "Kotak Biru", "Bintang Kuning", "Segitiga Hijau", "Lingkaran Ungu", 
-            "Balok Coklat", "Persegi Hitam", "Awan Putih", "Api Membara", "Tetes Air"
-        ]
-    };
+    // SKENARIO YANG KONSISTEN (Tempat + Subjek)
+    const scenarios = [
+      {
+        type: "LIFT",
+        places: ["Lantai 1", "Lantai 2", "Lantai 3", "Lantai 5", "Lantai 8", "Lantai Dasar"],
+        verbs: { enter: "naik", leave: "turun" },
+        subjects: ["Kakek", "Nenek", "Ibu Hamil", "Bocil", "Kurir Paket", "Satpam", "Karyawan"]
+      },
+      {
+        type: "ANGKOT",
+        places: ["Pasar", "Terminal", "Sekolah", "Simpang Lima", "Lampu Merah", "Gang Mangga"],
+        verbs: { enter: "naik", leave: "turun" },
+        subjects: ["Pelajar", "Emak-emak", "Pak Haji", "Pengamen", "Pedagang Sayur"]
+      },
+      {
+        type: "KANDANG",
+        places: ["Kandang Ayam", "Halaman Belakang", "Kebun", "Tepi Sungai"],
+        verbs: { enter: "masuk", leave: "kabur" },
+        subjects: ["Ayam", "Bebek", "Entok", "Kambing", "Kelinci"]
+      },
+      {
+        type: "WARUNG",
+        places: ["Warung Bu Ijah", "Toko Sembako", "Gudang"],
+        verbs: { enter: "beli", leave: "habis/pecah" },
+        subjects: ["Galon", "Tabung Gas", "Karung Beras", "Kardus Mie", "Telur"]
+      }
+    ];
 
-    // 1. PILIH KATEGORI ACAK DULU
-    const categoryKeys = Object.keys(categories);
-    const selectedCategory = categoryKeys[rand(0, categoryKeys.length - 1)];
-    const subjects = categories[selectedCategory]; // Gunakan subjek dari kategori terpilih saja
-
-    const locations = ["Lantai 1", "Lantai 2", "Lantai 3", "Lantai 5", "Pasar", "Stasiun", "Warteg", "Empang", "Pos Ronda", "Indomaret"];
+    // Pilih 1 Skenario untuk 1 Soal
+    const scene = scenarios[rand(0, scenarios.length - 1)];
+    const mainSubject = scene.subjects[rand(0, scene.subjects.length - 1)];
 
     let count = rand(2, 10);
     let formulaStr = `${count}`; 
-    
-    const initialSubj = subjects[rand(0, subjects.length-1)];
-    let log = [`Awalnya ada ${count} ${initialSubj}.`];
+    let log = [`Awalnya di ${scene.places[0]} ada ${count} ${mainSubject}.`];
     
     for (let i = 0; i < storySteps; i++) {
-        const loc = locations[rand(0, locations.length-1)];
-        const subj = subjects[rand(0, subjects.length-1)];
+        const place = scene.places[rand(1, scene.places.length - 1)]; // Hindari tempat awal
         const isAdd = Math.random() > 0.5; 
         
         if (isAdd) {
             const num = rand(1, 5);
             count += num;
             formulaStr += ` + ${num}`; 
-            log.push(`Di ${loc}, datang ${num} ${subj}.`);
+            log.push(`Di ${place}, ${scene.verbs.enter} ${num} ${mainSubject}.`);
         } else {
-            const num = rand(1, count > 1 ? count - 1 : 1);
+            const num = rand(1, count > 1 ? count - 1 : 1); // Biar gak minus
             if (count > 0 && num > 0) {
                 count -= num;
                 formulaStr += ` - ${num}`; 
-                log.push(`Di ${loc}, pergi ${num} ${subj}.`);
+                log.push(`Di ${place}, ${scene.verbs.leave} ${num} ${mainSubject}.`);
             } else {
                 const numAdd = rand(1, 3);
                 count += numAdd;
                 formulaStr += ` + ${numAdd}`; 
-                log.push(`Di ${loc}, muncul ${numAdd} ${subj}.`);
+                log.push(`Di ${place}, ${scene.verbs.enter} ${numAdd} ${mainSubject}.`);
             }
         }
     }
     return { q: log, a: count, formula: formulaStr };
   };
 
-  // --- GENERATE SOAL MATEMATIKA BIASA ---
   const generateMath = () => {
     const modes = ["ADD", "SUB", "MUL", "DIV"];
     const m = modes[Math.floor(Math.random() * modes.length)];
@@ -333,6 +328,7 @@ function MathGame() {
 
     setCurrentQ(quest);
     setInputAns("");
+    setFeedback("NONE");
     setIsSkipping(false);
     setTimeout(() => { if(inputRef.current) inputRef.current.focus(); }, 100);
   };
@@ -345,9 +341,8 @@ function MathGame() {
     generateQuestion();
   };
 
-  // --- TIMER ---
   useEffect(() => {
-    if (gameState === "PLAY" && !isSkipping) {
+    if (gameState === "PLAY" && !isSkipping && feedback !== "CORRECT") {
       timerRef.current = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 0.1) {
@@ -360,34 +355,45 @@ function MathGame() {
       }, 100);
     }
     return () => clearInterval(timerRef.current);
-  }, [gameState, isSkipping]);
+  }, [gameState, isSkipping, feedback]);
 
   const checkAnswer = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (isSkipping) return;
+    if (isSkipping || feedback === "CORRECT") return;
     const val = e.target.value;
     setInputAns(val);
     const numVal = parseInt(val);
     const correctVal = currentQ.a;
 
     if (numVal === correctVal) {
-      if (questionCount >= config.totalSoal) {
-        setScore(s => s + 1); 
-        setGameState("WIN");
-      } else {
-        setScore(s => s + 1);
-        setQuestionCount(c => c + 1);
-        generateQuestion();
-      }
+      // JAWABAN BENAR
+      setFeedback("CORRECT"); // Tampilkan Centang Hijau
+      // Delay 1 detik sebelum ganti soal
+      setTimeout(() => {
+        if (questionCount >= config.totalSoal) {
+            setScore(s => s + 1); 
+            setGameState("WIN");
+        } else {
+            setScore(s => s + 1);
+            setQuestionCount(c => c + 1);
+            generateQuestion();
+        }
+      }, 1000);
     } else {
+      // JAWABAN SALAH (Auto Clear jika panjang >= kunci jawaban)
       if (val.length >= correctVal.toString().length) {
          if (numVal !== correctVal) {
-            setTimeout(() => { setInputAns(""); }, 300);
+            setFeedback("WRONG"); // Tampilkan Silang Merah
+            setTimeout(() => { 
+                setFeedback("NONE"); 
+                setInputAns(""); 
+            }, 500);
          }
+      } else {
+          setFeedback("NONE");
       }
     }
   };
 
-  // --- LOGIKA SHOW ANSWER ---
   const handleGiveUp = () => {
     setIsSkipping(true); 
     setInputAns(currentQ.a.toString()); 
@@ -400,8 +406,6 @@ function MathGame() {
         }
     }, 2000);
   };
-
-  const isWrong = !isSkipping && inputAns !== "" && parseInt(inputAns) !== currentQ.a;
 
   // --- UI RENDER ---
   if (gameState === "LOGIN") return (
@@ -447,7 +451,13 @@ function MathGame() {
   return (
     <div className="bg-white rounded-xl shadow-2xl overflow-hidden max-w-md mx-auto border border-slate-200 relative">
       <div className="h-4 w-full bg-slate-100"><div className={`h-full transition-all duration-100 ease-linear ${barColor}`} style={{ width: `${percentage}%` }}/></div>
-      <div className="p-4 flex justify-between items-center border-b bg-slate-50"><span className="font-bold text-slate-700 text-xs uppercase">Soal <span className="text-base text-slate-900">{questionCount}</span> / {config.totalSoal}</span><span className="font-mono font-bold text-slate-500 text-sm">⏱ {timeLeft.toFixed(0)}s</span></div>
+      <div className="p-4 flex justify-between items-center border-b bg-slate-50">
+        <span className="font-bold text-slate-700 text-xs uppercase">Soal <span className="text-base text-slate-900">{questionCount}</span> / {config.totalSoal}</span>
+        <div className="flex gap-4 items-center">
+            <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded text-xs border border-emerald-100">✅ {score} Benar</span>
+            <span className="font-mono font-bold text-slate-500 text-sm">⏱ {timeLeft.toFixed(0)}s</span>
+        </div>
+      </div>
       
       <div className="p-6 text-center space-y-6 relative">
         <div className="py-2">
@@ -461,12 +471,16 @@ function MathGame() {
         </div>
 
         <div className="relative">
-            <input ref={inputRef} type="number" value={inputAns} onChange={checkAnswer} placeholder="..." autoFocus disabled={isSkipping} className={`w-32 mx-auto block p-2 text-center text-4xl font-bold border-b-4 outline-none bg-transparent transition-colors ${isSkipping ? "border-blue-500 text-blue-600 animate-pulse" : isWrong ? "border-red-500 text-red-600" : "border-slate-300 focus:border-orange-500 text-slate-800"}`}/>
-            {isWrong && !isSkipping && (<div className="absolute left-0 right-0 -bottom-6"><span className="text-red-600 font-bold text-xs">Salah.. Pikir lagi!</span></div>)}
+            <input ref={inputRef} type="number" value={inputAns} onChange={checkAnswer} placeholder="..." autoFocus disabled={isSkipping || feedback === "CORRECT"} className={`w-32 mx-auto block p-2 text-center text-4xl font-bold border-b-4 outline-none bg-transparent transition-colors ${isSkipping ? "border-blue-500 text-blue-600 animate-pulse" : feedback === "WRONG" ? "border-red-500 text-red-600" : feedback === "CORRECT" ? "border-emerald-500 text-emerald-600" : "border-slate-300 focus:border-orange-500 text-slate-800"}`}/>
+            
+            {/* VISUAL FEEDBACK BESAR */}
+            {feedback === "WRONG" && (<div className="absolute left-0 right-0 -bottom-16 animate-bounce"><span className="text-red-500 text-6xl">❌</span></div>)}
+            {feedback === "CORRECT" && (<div className="absolute left-0 right-0 -bottom-16 animate-bounce"><span className="text-emerald-500 text-6xl">✅</span></div>)}
+            
             {isSkipping && (<div className="absolute left-0 right-0 -bottom-12 flex flex-col items-center animate-bounce"><span className="text-blue-600 font-bold text-[10px] uppercase tracking-wide">Rumus & Jawaban:</span><span className="text-blue-800 font-mono text-sm font-bold bg-blue-100 px-3 py-1 rounded shadow-sm border border-blue-200 whitespace-nowrap">{currentQ.formula} = {currentQ.a}</span></div>)}
         </div>
 
-        <div className="pt-6"><button onClick={handleGiveUp} disabled={isSkipping} className="text-xs font-bold text-slate-400 hover:text-red-500 hover:bg-red-50 px-4 py-2 rounded-full transition-colors border border-transparent hover:border-red-100">{isSkipping ? "Lanjut..." : "🏳️ Lewati / Menyerah"}</button></div>
+        <div className="pt-6"><button onClick={handleGiveUp} disabled={isSkipping || feedback === "CORRECT"} className="text-xs font-bold text-slate-400 hover:text-red-500 hover:bg-red-50 px-4 py-2 rounded-full transition-colors border border-transparent hover:border-red-100">{isSkipping ? "Lanjut..." : "🏳️ Lewati / Menyerah"}</button></div>
       </div>
     </div>
   );
