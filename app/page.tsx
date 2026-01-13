@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 
 // --- TIPE DATA ---
-type Tab = "SCALE" | "RIGHT_ISSUE" | "GAME" | "EOD";
+type Tab = "SCALE" | "RIGHT_ISSUE" | "GAME";
 type Mode = "SCALE_IN" | "SCALE_OUT";
 type Method = "NORMAL" | "MARTINGALE" | "FIBONACCI";
 type GameMode = "MATH" | "STORY"; 
@@ -20,7 +20,6 @@ export default function SuperStockApp() {
       <details className="group"><summary className="font-bold text-emerald-700 cursor-pointer list-none flex justify-between"><span>1. Scale In</span><span className="group-open:rotate-180 transition-transform">▼</span></summary><p className="text-slate-600 mt-2 text-xs leading-relaxed">Strategi cicil beli (piramida) saat harga turun.</p></details>
       <details className="group"><summary className="font-bold text-red-700 cursor-pointer list-none flex justify-between"><span>2. Scale Out</span><span className="group-open:rotate-180 transition-transform">▼</span></summary><p className="text-slate-600 mt-2 text-xs leading-relaxed">Strategi cicil jual (distribusi) saat harga naik.</p></details>
       <details className="group"><summary className="font-bold text-indigo-700 cursor-pointer list-none flex justify-between"><span>3. Right Issue</span><span className="group-open:rotate-180 transition-transform">▼</span></summary><p className="text-slate-600 mt-2 text-xs leading-relaxed">Hitung jual induk untuk tebus right (Tail Swallowing).</p></details>
-      <details className="group"><summary className="font-bold text-blue-700 cursor-pointer list-none flex justify-between"><span>4. EOD Downloader</span><span className="group-open:rotate-180 transition-transform">▼</span></summary><p className="text-slate-600 mt-2 text-xs leading-relaxed">Download data saham harian persis seperti Extension.</p></details>
     </div>
   );
 
@@ -28,11 +27,10 @@ export default function SuperStockApp() {
     <div className="min-h-screen bg-slate-100 font-sans text-slate-800 pb-20">
       {/* --- MENU TAB ATAS --- */}
       <div className="bg-white shadow-sm border-b sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto flex overflow-x-auto no-scrollbar">
-          <button onClick={() => setActiveTab("SCALE")} className={`flex-1 py-4 px-2 text-xs md:text-sm font-bold uppercase tracking-wider border-b-4 transition-colors shrink-0 ${activeTab === "SCALE" ? "border-emerald-600 text-emerald-700 bg-emerald-50" : "border-transparent text-slate-400"}`}>💰 Scale</button>
-          <button onClick={() => setActiveTab("RIGHT_ISSUE")} className={`flex-1 py-4 px-2 text-xs md:text-sm font-bold uppercase tracking-wider border-b-4 transition-colors shrink-0 ${activeTab === "RIGHT_ISSUE" ? "border-indigo-600 text-indigo-700 bg-indigo-50" : "border-transparent text-slate-400"}`}>📉 Right Isu</button>
-          <button onClick={() => setActiveTab("GAME")} className={`flex-1 py-4 px-2 text-xs md:text-sm font-bold uppercase tracking-wider border-b-4 transition-colors shrink-0 ${activeTab === "GAME" ? "border-orange-500 text-orange-600 bg-orange-50" : "border-transparent text-slate-400"}`}>🎮 Game</button>
-          <button onClick={() => setActiveTab("EOD")} className={`flex-1 py-4 px-2 text-xs md:text-sm font-bold uppercase tracking-wider border-b-4 transition-colors shrink-0 ${activeTab === "EOD" ? "border-blue-600 text-blue-700 bg-blue-50" : "border-transparent text-slate-400"}`}>📥 EOD Data</button>
+        <div className="max-w-5xl mx-auto flex overflow-x-auto">
+          <button onClick={() => setActiveTab("SCALE")} className={`flex-1 py-4 text-xs md:text-sm font-bold uppercase tracking-wider border-b-4 transition-colors shrink-0 ${activeTab === "SCALE" ? "border-emerald-600 text-emerald-700 bg-emerald-50" : "border-transparent text-slate-400"}`}>💰 Scale In/Out</button>
+          <button onClick={() => setActiveTab("RIGHT_ISSUE")} className={`flex-1 py-4 text-xs md:text-sm font-bold uppercase tracking-wider border-b-4 transition-colors shrink-0 ${activeTab === "RIGHT_ISSUE" ? "border-indigo-600 text-indigo-700 bg-indigo-50" : "border-transparent text-slate-400"}`}>📉 Right Issue</button>
+          <button onClick={() => setActiveTab("GAME")} className={`flex-1 py-4 text-xs md:text-sm font-bold uppercase tracking-wider border-b-4 transition-colors shrink-0 ${activeTab === "GAME" ? "border-orange-500 text-orange-600 bg-orange-50" : "border-transparent text-slate-400"}`}>🎮 Game Logika</button>
         </div>
       </div>
 
@@ -42,204 +40,25 @@ export default function SuperStockApp() {
           {activeTab === "SCALE" && <ScaleCalculator />}
           {activeTab === "RIGHT_ISSUE" && <RightIssueCalculator />}
           {activeTab === "GAME" && <MathGame />}
-          {activeTab === "EOD" && <EodDownloader />}
           
-          {activeTab !== "GAME" && activeTab !== "EOD" && renderGuide()}
+          {activeTab !== "GAME" && renderGuide()}
         </div>
       </div>
 
       {/* --- STICKY CONTACT BAR --- */}
       <div className="fixed bottom-0 left-0 right-0 z-[60] flex shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
         <a href="https://t.me/+zrEOLwygGCBhZTQ1" target="_blank" rel="noopener noreferrer" className="flex-1 bg-[#0088cc] text-white p-3 flex items-center justify-center gap-2 hover:bg-[#0077b5] transition-colors border-r border-white/20">
-          <div className="flex flex-col leading-none text-left w-full items-center"><span className="text-[9px] opacity-80 uppercase font-bold">Gabung</span><span className="font-bold text-sm">Grup Telegram</span></div>
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="fill-white stroke-none"><path d="M21.198 2.433a2.242 2.242 0 0 0-1.022.215l-8.609 3.33c-2.068.8-4.133 1.598-5.724 2.21a405.15 405.15 0 0 1-2.849 1.09c-.42.147-.99.332-1.473.901-.728.968.193 1.798.919 2.286 1.61.516 3.275 1.009 4.654 1.472.509 1.793.997 3.592 1.48 5.388.16.36.506.494.864.498l-.002.018s.281.028.555-.038a2.1 2.1 0 0 0 .933-.517c.345-.324 1.28-1.244 1.811-1.764l3.999 2.952.032.018s.442.311 1.09.355c.324.022.75-.04 1.116-.308.37-.27.613-.702.728-1.196.342-1.492 2.61-12.285 2.997-14.072l-.01.042c.27-1.006.17-1.928-.455-2.381a2.24 2.24 0 0 0-1.635-.499Z"/></svg>
+          <div className="flex flex-col leading-none text-left"><span className="text-[9px] opacity-80 uppercase font-bold">Gabung</span><span className="font-bold text-sm">Grup RLA</span></div>
         </a>
         <a href="https://wa.me/6281299053961" target="_blank" rel="noopener noreferrer" className="flex-1 bg-[#25D366] text-white p-3 flex items-center justify-center gap-2 hover:bg-[#20bd5a] transition-colors">
-          <div className="flex flex-col leading-none text-left w-full items-center"><span className="text-[9px] opacity-80 uppercase font-bold">Chat Admin</span><span className="font-bold text-sm">WhatsApp</span></div>
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="fill-white stroke-none"><path d="M17.498 14.382c-.301-.15-1.767-.867-2.04-.966-.273-.101-.473-.15-.673.15-.197.295-.771.964-.944 1.162-.175.195-.349.21-.646.075-.3-.15-1.263-.465-2.403-1.485-.888-.795-1.484-1.77-1.66-2.07-.174-.3-.019-.465.13-.615.136-.135.303-.345.451-.523.151-.18.2-.3.301-.497.098-.196.05-.371-.025-.523-.075-.15-.672-1.62-.922-2.206-.24-.584-.487-.51-.672-.51-.172-.005-.372-.005-.572-.005-.201 0-.523.074-.797.372-.271.297-1.047 1.016-1.047 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.767-.721 2.016-1.418.25-.699.25-1.297.174-1.418-.075-.119-.272-.196-.572-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.07 0C5.537 0 .227 5.33.227 11.87c0 2.089.544 4.128 1.577 5.939L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          <div className="flex flex-col leading-none text-left"><span className="text-[9px] opacity-80 uppercase font-bold">Chat Admin</span><span className="font-bold text-sm">WhatsApp</span></div>
         </a>
       </div>
     </div>
   );
 }
-
-// ==========================================
-// 4. EOD DOWNLOADER (ADAPTASI DARI EXTENSION BAPAK)
-// ==========================================
-function EodDownloader() {
-  const [isUnlocked, setIsUnlocked] = useState(false);
-  const [password, setPassword] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [logs, setLogs] = useState<string[]>([]);
-
-  // Format YYYYMMDD untuk URL IDX
-  const formatToApiDate = (dateStr: string) => dateStr.replace(/-/g, "");
-
-  // Format DD/MM/YYYY untuk isi file (Sesuai content.js extension bapak)
-  const toDDMMYYYYString = (dateObj: Date) => {
-    const d = String(dateObj.getDate()).padStart(2, '0');
-    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const y = dateObj.getFullYear();
-    return `${d}/${m}/${y}`;
-  };
-
-  // Format DDMMYY untuk nama file
-  const toDDMMYYFilenameString = (dateObj: Date) => {
-    const d = String(dateObj.getDate()).padStart(2, '0');
-    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const y = String(dateObj.getFullYear()).slice(-2);
-    return `${d}${m}${y}`;
-  };
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (password === "bapak123") setIsUnlocked(true);
-    else alert("Password salah Pak! Coba 'bapak123'");
-  };
-
-  const setLastDays = (days: number) => {
-    const end = new Date();
-    const start = new Date();
-    start.setDate(end.getDate() - (days - 1)); 
-    setEndDate(end.toISOString().split('T')[0]);
-    setStartDate(start.toISOString().split('T')[0]);
-  };
-
-  // --- LOGIKA UTAMA DOWNLOAD ---
-  const handleDownload = async () => {
-    setLoading(true);
-    setLogs(["🚀 Memulai proses download via Proxy..."]);
-    
-    let current = new Date(startDate);
-    const end = new Date(endDate);
-    const allOutput: string[] = [];
-
-    // Header CSV (Opsional, sesuaikan kalau extension bapak pakai header)
-    // allOutput.push("Ticker;Date;Open;High;Low;Close;Volume;Freq"); 
-
-    while (current <= end) {
-      const day = current.getDay();
-      // Skip Sabtu (6) dan Minggu (0)
-      if (day !== 0 && day !== 6) {
-        const dateStr = current.toISOString().split('T')[0]; // YYYY-MM-DD
-        const apiDate = formatToApiDate(dateStr); // YYYYMMDD
-        
-        setLogs(prev => [`⏳ Request data: ${dateStr}...`, ...prev]);
-
-        try {
-          // --- KUNCI RAHASIA: BYPASS CORS ---
-          // Kita pakai 'allorigins' untuk membungkus request IDX supaya tidak diblokir browser
-          const targetUrl = `https://www.idx.co.id/primary/TradingSummary/GetStockSummary?length=10000&start=0&date=${apiDate}`;
-          const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-
-          const res = await fetch(proxyUrl);
-          const wrapper = await res.json();
-          
-          // Data asli dari IDX ada di dalam properti 'contents'
-          const idxJson = JSON.parse(wrapper.contents);
-
-          if (idxJson.data && idxJson.data.length > 0) {
-            const dateForContent = toDDMMYYYYString(current);
-            let count = 0;
-            
-            // --- LOGIKA PARSING (SAMA DENGAN POPUP.JS BAPAK) ---
-            idxJson.data.forEach((row: any) => {
-              // Cek validasi saham (Kode 4-6 karakter)
-              if (row.StockCode && row.StockCode.length >= 4) {
-                // Mapping sesuai popup.js
-                const ticker = row.StockCode;
-                const open = row.Open || 0;
-                const high = row.High || 0;
-                const low = row.Low || 0;
-                const close = row.Close || 0;
-                const volume = row.Volume || 0;
-                const freq = row.Frequency || 0; // Tambahan field Freq
-
-                // Format: Ticker;Date;Open;High;Low;Close;Volume;Freq (Pemisah Titik Koma)
-                const line = `${ticker};${dateForContent};${open};${high};${low};${close};${volume};${freq}`;
-                allOutput.push(line);
-                count++;
-              }
-            });
-            setLogs(prev => [`✅ ${dateStr}: Dapat ${count} saham`, ...prev]);
-          } else {
-            setLogs(prev => [`⚠️ ${dateStr}: Data Kosong (Libur?)`, ...prev]);
-          }
-        } catch (err: any) {
-          console.error(err);
-          setLogs(prev => [`❌ ${dateStr}: Gagal. Server IDX sibuk.`, ...prev]);
-        }
-      }
-      
-      current.setDate(current.getDate() + 1);
-      // Jeda sedikit biar sopan
-      await new Promise(r => setTimeout(r, 500)); 
-    }
-
-    // --- PROSES SIMPAN FILE ---
-    if (allOutput.length > 0) {
-        // Nama file pakai tanggal hari ini (seperti extension)
-        const filename = `EOD ${toDDMMYYFilenameString(new Date())}.txt`;
-        
-        const element = document.createElement("a");
-        const file = new Blob([allOutput.join("\n")], { type: "text/plain;charset=utf-8" });
-        element.href = URL.createObjectURL(file);
-        element.download = filename;
-        document.body.appendChild(element);
-        element.click();
-        document.body.removeChild(element);
-
-        setLogs(prev => [`🎉 SUKSES! File '${filename}' tersimpan.`, ...prev]);
-    } else {
-      setLogs(prev => [`😔 Tidak ada data yang bisa diunduh.`, ...prev]);
-    }
-    setLoading(false);
-  };
-
-  if (!isUnlocked) {
-    return (
-        <div className="bg-white rounded-xl shadow-lg p-8 max-w-sm mx-auto mt-10 text-center border-2 border-blue-100">
-            <div className="text-4xl mb-4">🔒</div>
-            <h2 className="text-xl font-bold text-slate-700 mb-2">Akses Terbatas</h2>
-            <p className="text-xs text-slate-500 mb-6">Fitur ini khusus untuk Bapak Admin.</p>
-            <form onSubmit={handleLogin} className="space-y-4">
-                <input type="password" placeholder="Masukkan Password..." className="w-full p-3 border rounded-lg text-center text-lg font-bold outline-blue-500" value={password} onChange={e => setPassword(e.target.value)} />
-                <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 shadow-md">BUKA AKSES</button>
-            </form>
-        </div>
-    );
-  }
-
-  return (
-    <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
-      <div className="bg-blue-700 p-4 text-white relative">
-        <h2 className="text-lg font-bold">IDX EOD Downloader (Extension Logic)</h2>
-        <p className="opacity-80 text-xs">Direct Fetch via Proxy (Bypass IP Block)</p>
-        <div className="absolute top-4 right-4 font-mono font-bold text-white/50 text-xs">@illusix</div>
-      </div>
-      <div className="p-6 space-y-5">
-        <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2">Pilih Cepat (Dari Hari Ini)</label>
-            <div className="grid grid-cols-3 gap-2">
-                <button onClick={() => setLastDays(1)} className="p-2 bg-blue-50 text-blue-600 rounded border border-blue-200 text-xs font-bold hover:bg-blue-100">1 Hari</button>
-                <button onClick={() => setLastDays(3)} className="p-2 bg-blue-50 text-blue-600 rounded border border-blue-200 text-xs font-bold hover:bg-blue-100">3 Hari</button>
-                <button onClick={() => setLastDays(5)} className="p-2 bg-blue-50 text-blue-600 rounded border border-blue-200 text-xs font-bold hover:bg-blue-100">5 Hari</button>
-            </div>
-        </div>
-        <div className="grid grid-cols-2 gap-4 border-t pt-4">
-          <div><label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Dari Tanggal</label><input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full p-2 border rounded font-bold text-sm text-slate-700" /></div>
-          <div><label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Sampai Tanggal</label><input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full p-2 border rounded font-bold text-sm text-slate-700" /></div>
-        </div>
-        <button onClick={handleDownload} disabled={loading || !startDate || !endDate} className={`w-full py-4 rounded-lg font-bold text-white shadow-md transition-all flex items-center justify-center gap-2 ${loading ? "bg-slate-400 cursor-wait" : "bg-emerald-600 hover:bg-emerald-700"}`}>{loading ? (<>⏳ Sedang Mengambil Data...</>) : (<>📥 DOWNLOAD & SIMPAN DATA</>)}</button>
-        <div className="bg-slate-900 rounded-lg p-3 h-48 overflow-y-auto font-mono text-[10px] text-green-400 border border-slate-700 shadow-inner custom-scrollbar">{logs.length === 0 ? (<div className="h-full flex items-center justify-center text-slate-600 italic">Log proses akan muncul di sini...</div>) : (logs.map((log, i) => <div key={i} className="border-b border-slate-800 pb-1 mb-1 last:border-0">{log}</div>))}</div>
-      </div>
-    </div>
-  );
-}
-
-// ... (KODE SCALE CALCULATOR, RIGHT ISSUE, MATH GAME DI BAWAH INI TETAP SAMA PERSIS) ...
-// (Agar kode tidak terpotong, silakan gunakan kode MathGame, ScaleCalc, dan RightIssue dari chat sebelumnya)
-// Pastikan semua function di-paste lengkap di bawah EodDownloader.
 
 // ==========================================
 // 1. KOMPONEN KALKULATOR SCALE IN/OUT
