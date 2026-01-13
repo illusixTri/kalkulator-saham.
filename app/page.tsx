@@ -106,13 +106,99 @@ function EodDownloader() {
   };
 
   // --- LOGIKA UTAMA DOWNLOAD ---
+  // --- GANTI BAGIAN INI SAJA DI app/page.tsx ---
   const handleDownload = async () => {
     setLoading(true);
-    setLogs(["🚀 Memulai proses download via Proxy..."]);
+    setLogs(["🚀 Memulai download..."]);
     
     let current = new Date(startDate);
     const end = new Date(endDate);
     const allOutput: string[] = [];
+
+    while (current <= end) {
+      const day = current.getDay();
+      // Skip Sabtu (6) dan Minggu (0)
+      if (day !== 0 && day !== 6) {
+        const dateStr = current.toISOString().split('T')[0];
+        const apiDate = formatToApiDate(dateStr);
+        
+        setLogs(prev => [`⏳ Mengambil ${dateStr}...`, ...prev]);
+
+        try {
+          const targetUrl = `https://www.idx.co.id/primary/TradingSummary/GetStockSummary?length=10000&start=0&date=${apiDate}`;
+          
+          // --- TRIK BARU: DUAL PROXY ---
+          // Kita coba Proxy 1 (corsproxy.io) dulu. Kalau gagal, coba Proxy 2.
+          let idxJson = null;
+          
+          try {
+            // USHA 1: Pakai CorsProxy.io (Biasanya lebih cepat)
+            const proxy1 = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+            const res1 = await fetch(proxy1);
+            if (!res1.ok) throw new Error("Proxy 1 timeout");
+            idxJson = await res1.json(); // Corsproxy langsung balikin JSON
+          } catch (e) {
+            // USAHA 2: Kalau Proxy 1 gagal, pakai AllOrigins (Cadangan)
+            console.log("Switching to backup proxy...");
+            const proxy2 = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+            const res2 = await fetch(proxy2);
+            const wrapper = await res2.json();
+            idxJson = JSON.parse(wrapper.contents);
+          }
+
+          // --- OLAH DATA ---
+          if (idxJson && idxJson.data && idxJson.data.length > 0) {
+            const dateForContent = toDDMMYYYYString(current);
+            let count = 0;
+            
+            idxJson.data.forEach((row: any) => {
+              if (row.StockCode && row.StockCode.length >= 4) {
+                // Mapping Data
+                const ticker = row.StockCode;
+                const open = row.Open || 0;
+                const high = row.High || 0;
+                const low = row.Low || 0;
+                const close = row.Close || 0;
+                const volume = row.Volume || 0;
+                const freq = row.Frequency || 0; 
+
+                // Format: Ticker;Date;Open;High;Low;Close;Volume;Freq
+                const line = `${ticker};${dateForContent};${open};${high};${low};${close};${volume};${freq}`;
+                allOutput.push(line);
+                count++;
+              }
+            });
+            setLogs(prev => [`✅ ${dateStr}: Sukses (${count} data)`, ...prev]);
+          } else {
+            setLogs(prev => [`⚠️ ${dateStr}: Data kosong / Libur`, ...prev]);
+          }
+        } catch (err: any) {
+          console.error(err);
+          setLogs(prev => [`❌ ${dateStr}: Gagal koneksi (Coba lagi nanti)`, ...prev]);
+        }
+      }
+      
+      current.setDate(current.getDate() + 1);
+      // Delay agak lama (1 detik) biar server IDX gak ngambek
+      await new Promise(r => setTimeout(r, 1000)); 
+    }
+
+    if (allOutput.length > 0) {
+        const filename = `EOD ${toDDMMYYFilenameString(new Date())}.txt`;
+        const element = document.createElement("a");
+        const file = new Blob([allOutput.join("\n")], { type: "text/plain;charset=utf-8" });
+        element.href = URL.createObjectURL(file);
+        element.download = filename;
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+
+        setLogs(prev => [`🎉 SUKSES! File tersimpan.`, ...prev]);
+    } else {
+      setLogs(prev => [`😔 Tidak ada data yg bisa disimpan.`, ...prev]);
+    }
+    setLoading(false);
+  };
 
     // Header CSV (Opsional, sesuaikan kalau extension bapak pakai header)
     // allOutput.push("Ticker;Date;Open;High;Low;Close;Volume;Freq"); 
