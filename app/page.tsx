@@ -2,7 +2,6 @@
 import { useState, useEffect, useRef } from "react";
 
 // --- TIPE DATA ---
-// Menambahkan tab baru "RI_TERP"
 type Tab = "SCALE" | "RIGHT_ISSUE" | "RI_TERP" | "GAME";
 type Mode = "SCALE_IN" | "SCALE_OUT";
 type Method = "NORMAL" | "MARTINGALE" | "FIBONACCI";
@@ -19,8 +18,8 @@ export default function SuperStockApp() {
     <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 text-sm space-y-3 mb-24">
       <h3 className="font-bold text-slate-700 uppercase border-b pb-2">📖 Panduan Singkat</h3>
       <details className="group"><summary className="font-bold text-emerald-700 cursor-pointer list-none flex justify-between"><span>1. Scale In/Out</span><span className="group-open:rotate-180 transition-transform">▼</span></summary><p className="text-slate-600 mt-2 text-xs leading-relaxed">Strategi cicil beli (piramida) dan cicil jual.</p></details>
-      <details className="group"><summary className="font-bold text-indigo-700 cursor-pointer list-none flex justify-between"><span>2. Right Issue (Strategi)</span><span className="group-open:rotate-180 transition-transform">▼</span></summary><p className="text-slate-600 mt-2 text-xs leading-relaxed">Hitung berapa lot induk yang harus dijual untuk menebus right (Tail Swallowing).</p></details>
-      <details className="group"><summary className="font-bold text-orange-600 cursor-pointer list-none flex justify-between"><span>3. RI TERP (Analisa)</span><span className="group-open:rotate-180 transition-transform">▼</span></summary><p className="text-slate-600 mt-2 text-xs leading-relaxed">Hitung Harga Wajar Teoritis (Ex-Date) setelah aksi korporasi.</p></details>
+      <details className="group"><summary className="font-bold text-indigo-700 cursor-pointer list-none flex justify-between"><span>2. RI Strategi (Jual Induk)</span><span className="group-open:rotate-180 transition-transform">▼</span></summary><p className="text-slate-600 mt-2 text-xs leading-relaxed">Hitung berapa lot induk yang harus dijual untuk menebus right (Tail Swallowing).</p></details>
+      <details className="group"><summary className="font-bold text-orange-600 cursor-pointer list-none flex justify-between"><span>3. RI TERP (Analisa Harga)</span><span className="group-open:rotate-180 transition-transform">▼</span></summary><p className="text-slate-600 mt-2 text-xs leading-relaxed">Hitung Harga Wajar Teoritis (Ex-Date) menggunakan satuan Juta Lembar.</p></details>
     </div>
   );
 
@@ -31,7 +30,6 @@ export default function SuperStockApp() {
         <div className="max-w-5xl mx-auto flex overflow-x-auto no-scrollbar">
           <button onClick={() => setActiveTab("SCALE")} className={`flex-1 py-4 px-2 text-xs md:text-sm font-bold uppercase tracking-wider border-b-4 transition-colors shrink-0 ${activeTab === "SCALE" ? "border-emerald-600 text-emerald-700 bg-emerald-50" : "border-transparent text-slate-400"}`}>💰 Scale</button>
           <button onClick={() => setActiveTab("RIGHT_ISSUE")} className={`flex-1 py-4 px-2 text-xs md:text-sm font-bold uppercase tracking-wider border-b-4 transition-colors shrink-0 ${activeTab === "RIGHT_ISSUE" ? "border-indigo-600 text-indigo-700 bg-indigo-50" : "border-transparent text-slate-400"}`}>📉 RI Strategi</button>
-          {/* TAB BARU: RI TERP */}
           <button onClick={() => setActiveTab("RI_TERP")} className={`flex-1 py-4 px-2 text-xs md:text-sm font-bold uppercase tracking-wider border-b-4 transition-colors shrink-0 ${activeTab === "RI_TERP" ? "border-orange-500 text-orange-600 bg-orange-50" : "border-transparent text-slate-400"}`}>📊 RI TERP</button>
           <button onClick={() => setActiveTab("GAME")} className={`flex-1 py-4 px-2 text-xs md:text-sm font-bold uppercase tracking-wider border-b-4 transition-colors shrink-0 ${activeTab === "GAME" ? "border-blue-500 text-blue-600 bg-blue-50" : "border-transparent text-slate-400"}`}>🎮 Game</button>
         </div>
@@ -144,7 +142,7 @@ function ScaleCalculator() {
 }
 
 // ==========================================
-// 2. KOMPONEN RIGHT ISSUE STRATEGI (FITUR LAMA - UNCHANGED)
+// 2. KOMPONEN RIGHT ISSUE STRATEGI (FITUR LAMA - TAIL SWALLOWING)
 // ==========================================
 function RightIssueStrategy() {
   const [emiten, setEmiten] = useState("INET");
@@ -234,14 +232,14 @@ function RightIssueStrategy() {
 }
 
 // ==========================================
-// 3. KOMPONEN RI TERP (TAB BARU - ANALISA HARGA TEORITIS)
+// 3. KOMPONEN RI TERP (TAB BARU - DENGAN INPUT SATUAN JUTA)
 // ==========================================
 function RiTerpCalculator() {
   const [emiten, setEmiten] = useState("INET");
   const [hargaPasar, setHargaPasar] = useState(400); // Cum Date Price
   const [hargaTebus, setHargaTebus] = useState(250); // Exercise Price
-  const [ratioOld, setRatioOld] = useState(500000000); // Default besar biar sesuai teori
-  const [ratioNew, setRatioNew] = useState(100000000); 
+  const [ratioOld, setRatioOld] = useState(500); // Default 500 (Juta)
+  const [ratioNew, setRatioNew] = useState(100); // Default 100 (Juta)
   const [result, setResult] = useState<any>(null);
   const [showFormula, setShowFormula] = useState(false);
 
@@ -283,16 +281,16 @@ function RiTerpCalculator() {
           <div className="bg-white p-3 border rounded-lg shadow-sm">
             <div className="flex items-center gap-3">
                 <div className="flex-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Jml Saham Lama</label>
-                    <input type="text" value={formatNum(ratioOld)} onChange={handleInput(setRatioOld)} className="w-full p-2 border rounded text-center font-bold bg-slate-50" placeholder="500.000.000" />
+                    <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Jml Saham Lama (Juta)</label>
+                    <input type="text" value={formatNum(ratioOld)} onChange={handleInput(setRatioOld)} className="w-full p-2 border rounded text-center font-bold bg-slate-50" placeholder="500" />
                 </div>
                 <span className="font-bold text-slate-400 text-lg mt-4">+</span>
                 <div className="flex-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Jml Saham Baru</label>
-                    <input type="text" value={formatNum(ratioNew)} onChange={handleInput(setRatioNew)} className="w-full p-2 border rounded text-center font-bold bg-slate-50" placeholder="100.000.000" />
+                    <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Jml Saham Baru (Juta)</label>
+                    <input type="text" value={formatNum(ratioNew)} onChange={handleInput(setRatioNew)} className="w-full p-2 border rounded text-center font-bold bg-slate-50" placeholder="100" />
                 </div>
             </div>
-            <p className="text-[9px] text-slate-400 mt-2 italic text-center">*Masukkan Rasio (5:1) atau Total Lembar Saham.</p>
+            <p className="text-[9px] text-slate-400 mt-2 italic text-center">*Masukkan angka dalam satuan JUTA (Contoh: 500 = 500 Juta)</p>
           </div>
       </div>
         
@@ -315,10 +313,10 @@ function RiTerpCalculator() {
 
               {showFormula && (
                 <div className="p-3 bg-slate-50 rounded border border-slate-200 text-[10px] font-mono text-slate-600 space-y-2 animate-fade-in">
-                    <div className="flex justify-between"><span>Valuasi Lama:</span> <span className="font-bold">{formatCompact(ratioOld)} x {hargaPasar} = {formatCompact(result.totalValOld)}</span></div>
-                    <div className="flex justify-between border-b border-dashed border-slate-300 pb-1"><span>Valuasi Baru:</span> <span className="font-bold">{formatCompact(ratioNew)} x {hargaTebus} = {formatCompact(result.totalValNew)}</span></div>
-                    <div className="flex justify-between pt-1 text-slate-800"><span>Total Nilai:</span> <span className="font-bold">{formatCompact(result.totalValOld + result.totalValNew)}</span></div>
-                    <div className="flex justify-between text-slate-800"><span>Total Saham:</span> <span className="font-bold">{formatCompact(result.totalShares)} Lbr</span></div>
+                    <div className="flex justify-between"><span>Valuasi Lama:</span> <span className="font-bold">{formatNum(ratioOld)} (Jt) x {hargaPasar} = {formatCompact(result.totalValOld)}</span></div>
+                    <div className="flex justify-between border-b border-dashed border-slate-300 pb-1"><span>Valuasi Baru:</span> <span className="font-bold">{formatNum(ratioNew)} (Jt) x {hargaTebus} = {formatCompact(result.totalValNew)}</span></div>
+                    <div className="flex justify-between pt-1 text-slate-800"><span>Total Nilai:</span> <span className="font-bold">{formatCompact(result.totalValOld + result.totalValNew)} (Jt)</span></div>
+                    <div className="flex justify-between text-slate-800"><span>Total Saham:</span> <span className="font-bold">{formatNum(result.totalShares)} (Jt) Lbr</span></div>
                     <div className="text-right text-orange-600 font-bold pt-2 border-t border-slate-300 mt-1">Hasil = {formatIDR(result.terp)}</div>
                 </div>
               )}
