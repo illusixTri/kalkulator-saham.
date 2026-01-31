@@ -17,7 +17,7 @@ export default function SuperStockApp() {
   const renderGuide = () => (
     <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 text-sm space-y-3 mb-24">
       <h3 className="font-bold text-slate-700 uppercase border-b pb-2">📖 Panduan Singkat</h3>
-      <details className="group"><summary className="font-bold text-emerald-700 cursor-pointer list-none flex justify-between"><span>1. Scale In/Out</span><span className="group-open:rotate-180 transition-transform">▼</span></summary><p className="text-slate-600 mt-2 text-xs leading-relaxed">Strategi cicil beli (piramida) dan cicil jual.</p></details>
+      <details className="group"><summary className="font-bold text-emerald-700 cursor-pointer list-none flex justify-between"><span>1. Scale In/Out</span><span className="group-open:rotate-180 transition-transform">▼</span></summary><p className="text-slate-600 mt-2 text-xs leading-relaxed">Strategi cicil beli (piramida) dan cicil jual. Bisa atur level otomatis atau manual.</p></details>
       <details className="group"><summary className="font-bold text-indigo-700 cursor-pointer list-none flex justify-between"><span>2. RI Strategi (Jual Induk)</span><span className="group-open:rotate-180 transition-transform">▼</span></summary><p className="text-slate-600 mt-2 text-xs leading-relaxed">Hitung berapa lot induk yang harus dijual untuk menebus right (Tail Swallowing).</p></details>
       <details className="group"><summary className="font-bold text-orange-600 cursor-pointer list-none flex justify-between"><span>3. RI TERP (Analisa Harga)</span><span className="group-open:rotate-180 transition-transform">▼</span></summary><p className="text-slate-600 mt-2 text-xs leading-relaxed">Hitung Harga Wajar Teoritis (Ex-Date) menggunakan satuan Juta Lembar.</p></details>
     </div>
@@ -61,7 +61,7 @@ export default function SuperStockApp() {
 }
 
 // ==========================================
-// 1. KOMPONEN KALKULATOR SCALE IN/OUT
+// 1. KOMPONEN KALKULATOR SCALE IN/OUT (NEW: AUTO/MANUAL LEVEL)
 // ==========================================
 function ScaleCalculator() {
   const [mode, setMode] = useState<Mode>("SCALE_IN");
@@ -71,18 +71,114 @@ function ScaleCalculator() {
   const [targetPrice, setTargetPrice] = useState(505);
   const [method, setMethod] = useState<Method>("MARTINGALE");
   const [multiplier, setMultiplier] = useState(2.0);
+  
+  // -- New State untuk Manual Level --
+  const [isAutoLevel, setIsAutoLevel] = useState(true);
+  const [manualSteps, setManualSteps] = useState(5);
+
   const [results, setResults] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>({});
   const [autoSteps, setAutoSteps] = useState(0);
   const [spreadPct, setSpreadPct] = useState(0);
+
   const formatIDR = (num: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(num);
   const formatNum = (num: number) => new Intl.NumberFormat("id-ID").format(num);
   const handleInputAmount = (e: React.ChangeEvent<HTMLInputElement>) => { const cleanValue = e.target.value.replace(/\D/g, ""); setTotalInput(Number(cleanValue)); };
-  useEffect(() => { if (mode === "SCALE_IN") { if (emiten === "DCBA") { setEmiten("ABCD"); setTotalInput(50000000); } } else { if (emiten === "ABCD") { setEmiten("DCBA"); setTotalInput(1000); } } }, [mode]);
-  const roundToTick = (price: number) => { let tick = 1; if (price < 200) tick = 1; else if (price >= 200 && price < 500) tick = 2; else if (price >= 500 && price < 2000) tick = 5; else if (price >= 2000 && price < 5000) tick = 10; else tick = 25; return Math.round(price / tick) * tick; };
+  
+  useEffect(() => { 
+    if (mode === "SCALE_IN") { 
+        if (emiten === "DCBA") { setEmiten("ABCD"); setTotalInput(50000000); } 
+    } else { 
+        if (emiten === "ABCD") { setEmiten("DCBA"); setTotalInput(1000); } 
+    } 
+  }, [mode]);
+
+  const roundToTick = (price: number) => { 
+      let tick = 1; 
+      if (price < 200) tick = 1; 
+      else if (price >= 200 && price < 500) tick = 2; 
+      else if (price >= 500 && price < 2000) tick = 5; 
+      else if (price >= 2000 && price < 5000) tick = 10; 
+      else tick = 25; 
+      return Math.round(price / tick) * tick; 
+  };
+
   const isInvalidTicker = emiten === "ABCD" || emiten === "DCBA";
-  const calculateStrategy = () => { if (isInvalidTicker) { setResults([]); return; } const spread = Math.abs(startPrice - targetPrice) / startPrice; setSpreadPct(spread * 100); let steps = 3; if (spread < 0.10) steps = 3; else if (spread < 0.25) steps = 5; else if (spread < 0.50) steps = 8; else steps = 13; setAutoSteps(steps); let weights: number[] = []; if (method === "NORMAL") weights = Array(steps).fill(1); else if (method === "MARTINGALE") for (let i = 0; i < steps; i++) weights.push(Math.pow(multiplier, i)); else if (method === "FIBONACCI") { let a = 1, b = 1; for (let i = 0; i < steps; i++) { weights.push(a); const temp = a + b; a = b; b = temp; } } if (mode === "SCALE_OUT") weights.sort((a, b) => b - a); const totalWeight = weights.reduce((a, b) => a + b, 0); let tempResults = []; let priceStep = (targetPrice - startPrice) / (steps - 1); let accumLot = 0; let accumValue = 0; let totalExecValue = 0; let totalExecLot = 0; for (let i = 0; i < steps; i++) { let rawPrice = startPrice + (i * priceStep); let executedPrice = roundToTick(rawPrice); let weightPct = weights[i] / totalWeight; let currentLot = 0; let currentValue = 0; if (mode === "SCALE_IN") { let allocationRp = totalInput * weightPct; currentLot = Math.floor(allocationRp / (executedPrice * 100)); currentValue = currentLot * 100 * executedPrice; } else { let allocationLot = totalInput * weightPct; currentLot = Math.round(allocationLot); currentValue = currentLot * 100 * executedPrice; } accumLot += currentLot; accumValue += currentValue; totalExecValue += currentValue; totalExecLot += currentLot; let avgPrice = accumValue / (accumLot * 100); tempResults.push({ level: i + 1, price: executedPrice, weightPct: (weightPct * 100).toFixed(1), lot: currentLot, value: currentValue, avgPrice: Math.round(avgPrice || 0) }); } setResults(tempResults); setSummary({ totalMoney: totalExecValue, totalLot: totalExecLot, finalAvg: accumValue / (accumLot * 100) || 0 }); };
-  useEffect(() => { calculateStrategy(); }, [mode, totalInput, startPrice, targetPrice, method, multiplier, emiten]);
+
+  const calculateStrategy = () => { 
+    if (isInvalidTicker) { setResults([]); return; } 
+    
+    const spread = Math.abs(startPrice - targetPrice) / startPrice; 
+    setSpreadPct(spread * 100); 
+    
+    // --- LOGIKA LEVEL OTOMATIS ---
+    let calculatedAutoSteps = 3; 
+    if (spread < 0.10) calculatedAutoSteps = 3; 
+    else if (spread < 0.25) calculatedAutoSteps = 5; 
+    else if (spread < 0.50) calculatedAutoSteps = 8; 
+    else calculatedAutoSteps = 13; 
+    setAutoSteps(calculatedAutoSteps); // Simpan info auto steps
+
+    // --- TENTUKAN STEPS YANG DIPAKAI (AUTO VS MANUAL) ---
+    let steps = isAutoLevel ? calculatedAutoSteps : manualSteps;
+    if (steps < 2) steps = 2; // Minimal 2 level
+
+    let weights: number[] = []; 
+    if (method === "NORMAL") weights = Array(steps).fill(1); 
+    else if (method === "MARTINGALE") for (let i = 0; i < steps; i++) weights.push(Math.pow(multiplier, i)); 
+    else if (method === "FIBONACCI") { 
+        let a = 1, b = 1; 
+        for (let i = 0; i < steps; i++) { weights.push(a); const temp = a + b; a = b; b = temp; } 
+    } 
+    
+    if (mode === "SCALE_OUT") weights.sort((a, b) => b - a); 
+    
+    const totalWeight = weights.reduce((a, b) => a + b, 0); 
+    let tempResults = []; 
+    let priceStep = (targetPrice - startPrice) / (steps - 1); 
+    
+    let accumLot = 0; 
+    let accumValue = 0; 
+    let totalExecValue = 0; 
+    let totalExecLot = 0; 
+
+    for (let i = 0; i < steps; i++) { 
+        let rawPrice = startPrice + (i * priceStep); 
+        let executedPrice = roundToTick(rawPrice); 
+        let weightPct = weights[i] / totalWeight; 
+        let currentLot = 0; 
+        let currentValue = 0; 
+        
+        if (mode === "SCALE_IN") { 
+            let allocationRp = totalInput * weightPct; 
+            currentLot = Math.floor(allocationRp / (executedPrice * 100)); 
+            currentValue = currentLot * 100 * executedPrice; 
+        } else { 
+            let allocationLot = totalInput * weightPct; 
+            currentLot = Math.round(allocationLot); 
+            currentValue = currentLot * 100 * executedPrice; 
+        } 
+        
+        accumLot += currentLot; 
+        accumValue += currentValue; 
+        totalExecValue += currentValue; 
+        totalExecLot += currentLot; 
+        let avgPrice = accumValue / (accumLot * 100); 
+        
+        tempResults.push({ 
+            level: i + 1, 
+            price: executedPrice, 
+            weightPct: (weightPct * 100).toFixed(1), 
+            lot: currentLot, 
+            value: currentValue, 
+            avgPrice: Math.round(avgPrice || 0) 
+        }); 
+    } 
+    setResults(tempResults); 
+    setSummary({ totalMoney: totalExecValue, totalLot: totalExecLot, finalAvg: accumValue / (accumLot * 100) || 0 }); 
+  };
+
+  useEffect(() => { calculateStrategy(); }, [mode, totalInput, startPrice, targetPrice, method, multiplier, emiten, isAutoLevel, manualSteps]);
 
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200">
@@ -97,21 +193,44 @@ function ScaleCalculator() {
             <button onClick={() => setMode("SCALE_IN")} className={`flex-1 py-2 text-xs font-bold rounded-md ${mode === "SCALE_IN" ? "bg-white shadow text-emerald-700" : "text-slate-500"}`}>Scale In (Buy)</button>
             <button onClick={() => setMode("SCALE_OUT")} className={`flex-1 py-2 text-xs font-bold rounded-md ${mode === "SCALE_OUT" ? "bg-white shadow text-red-700" : "text-slate-500"}`}>Scale Out (Sell)</button>
           </div>
+          
           {isInvalidTicker && (<div className="bg-red-100 border border-red-200 text-red-700 px-3 py-2 rounded text-[10px] font-bold animate-pulse">⚠️ Silakan ganti nama saham "{emiten}" dengan kode saham yang benar (Contoh: BBCA, ASII) untuk melihat hasil.</div>)}
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             <div><label className="text-[10px] font-bold text-slate-500 uppercase">Emiten</label><input type="text" value={emiten} onChange={(e) => setEmiten(e.target.value.toUpperCase())} className={`w-full p-2 border rounded font-bold uppercase transition-all ${isInvalidTicker ? 'border-red-500 bg-red-50 focus:ring-red-500' : 'border-slate-300 focus:ring-blue-500'}`} /></div>
             <div><label className="text-[10px] font-bold text-slate-500 uppercase">{mode === 'SCALE_IN' ? 'Total Modal' : 'Total Lot'}</label><input type="text" value={formatNum(totalInput)} onChange={handleInputAmount} className="w-full p-2 border rounded font-bold text-slate-800" /></div>
           </div>
+          
           <div className="grid grid-cols-2 gap-2">
             <div><label className="text-[10px] font-bold text-slate-500 uppercase">Harga Awal</label><input type="number" value={startPrice} onChange={(e) => setStartPrice(Number(e.target.value))} className="w-full p-2 border rounded" /></div>
             <div><label className="text-[10px] font-bold text-slate-500 uppercase">Harga Target</label><input type="number" value={targetPrice} onChange={(e) => setTargetPrice(Number(e.target.value))} className="w-full p-2 border rounded" /></div>
           </div>
+
+          {/* --- PILIHAN LEVEL AUTO / MANUAL --- */}
+          <div className="bg-white p-2 rounded border border-slate-300">
+             <div className="flex items-center gap-2 mb-2">
+                <button onClick={() => setIsAutoLevel(true)} className={`flex-1 text-[10px] font-bold py-1.5 rounded ${isAutoLevel ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'}`}>Auto Level</button>
+                <button onClick={() => setIsAutoLevel(false)} className={`flex-1 text-[10px] font-bold py-1.5 rounded ${!isAutoLevel ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'}`}>Manual</button>
+             </div>
+             
+             {!isAutoLevel ? (
+                 <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">Jml Level</label>
+                    <input type="number" value={manualSteps} onChange={(e) => setManualSteps(Math.max(2, Number(e.target.value)))} className="w-20 p-1 border rounded text-center font-bold text-blue-700" />
+                 </div>
+             ) : (
+                 <div className="text-[10px] text-center text-slate-400 italic">Level dihitung otomatis dari spread ({autoSteps} Lvl)</div>
+             )}
+          </div>
+
           <div><label className="text-[10px] font-bold text-slate-500 uppercase">Metode</label><select value={method} onChange={(e) => setMethod(e.target.value as Method)} className="w-full p-2 border rounded bg-white text-sm"><option value="NORMAL">Normal</option><option value="MARTINGALE">Martingale</option><option value="FIBONACCI">Fibonacci</option></select></div>
+          
           <div className="flex gap-2 items-end">
             {method === "MARTINGALE" && (<div className="w-24 shrink-0"><label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Faktor (x)</label><input type="number" step="0.1" value={multiplier} onChange={(e) => setMultiplier(Number(e.target.value))} className="w-full p-2 border rounded text-center font-bold" /></div>)}
-            <div className="flex-1 bg-blue-50 border border-blue-100 rounded p-2 h-[38px] flex flex-col justify-center text-[10px] text-blue-800 leading-tight"><div className="flex justify-between items-center"><span>Spread: <strong>{spreadPct.toFixed(1)}%</strong></span><span>Saran: <strong>{autoSteps} Lvl</strong></span></div></div>
+            <div className="flex-1 bg-blue-50 border border-blue-100 rounded p-2 h-[38px] flex flex-col justify-center text-[10px] text-blue-800 leading-tight"><div className="flex justify-between items-center"><span>Spread: <strong>{spreadPct.toFixed(1)}%</strong></span></div></div>
           </div>
         </div>
+        
         <div className="lg:col-span-2 p-4 bg-white relative">
           {isInvalidTicker ? (
              <div className="h-full w-full flex flex-col items-center justify-center text-slate-300 space-y-2 py-10">
@@ -232,7 +351,7 @@ function RightIssueStrategy() {
 }
 
 // ==========================================
-// 3. KOMPONEN RI TERP (TAB BARU - UX UPDATED)
+// 3. KOMPONEN RI TERP (TAB BARU - UX UPDATED DENGAN INDIKATOR JUTA)
 // ==========================================
 function RiTerpCalculator() {
   const [emiten, setEmiten] = useState("INET");
