@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-// Pastikan html2canvas sudah diinstall. Jika error "Module not found", jalankan: npm install html2canvas
-import html2canvas from "html2canvas";
+// Pastikan sudah install: npm install html-to-image
+import { toPng } from 'html-to-image';
 
 // --- TIPE DATA ---
 type Tab = "SCALE" | "RIGHT_ISSUE" | "RI_TERP" | "GAME";
@@ -62,40 +62,34 @@ export default function SuperStockApp() {
   );
 }
 
-// --- FUNGSI UTILITY SAVE IMAGE (DEBUG MODE) ---
+// --- FUNGSI SAVE IMAGE BARU ---
 const useScreenshot = () => {
     const [isGenerating, setIsGenerating] = useState(false);
 
-    const saveImage = async (element: HTMLElement | null, filename: string) => {
+    const saveImage = async (elementId: string, filename: string) => {
+        const element = document.getElementById(elementId);
         if (!element) {
             alert("Error: Area gambar tidak ditemukan!");
-            return;
-        }
-        if (typeof html2canvas === 'undefined') {
-            alert("Error Fatal: Library 'html2canvas' belum terinstall. Mohon jalankan 'npm install html2canvas' di terminal.");
             return;
         }
 
         try {
             setIsGenerating(true);
-            // Delay sedikit agar UI stabil
-            await new Promise(r => setTimeout(r, 100));
-
-            const canvas = await html2canvas(element, { 
-                backgroundColor: "#ffffff", 
-                scale: 2, // Resolusi tinggi
-                useCORS: true, // Fix untuk icon/font
-                logging: false
+            
+            const dataUrl = await toPng(element, { 
+                cacheBust: true, 
+                backgroundColor: '#ffffff',
+                pixelRatio: 2 // Biar HD
             });
 
             const link = document.createElement("a");
             link.download = `${filename}_${new Date().getTime()}.png`;
-            link.href = canvas.toDataURL("image/png");
+            link.href = dataUrl;
             link.click();
             
         } catch (err: any) {
             console.error("Gagal save gambar:", err);
-            alert("Gagal menyimpan gambar: " + err.message);
+            alert("Gagal menyimpan gambar. Pastikan sudah install: npm install html-to-image");
         } finally {
             setIsGenerating(false);
         }
@@ -104,14 +98,21 @@ const useScreenshot = () => {
     return { saveImage, isGenerating };
 };
 
-// --- WATERMARK COMPONENT ---
-const Watermark = () => (
-    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 overflow-hidden opacity-10">
-        <div className="text-4xl md:text-6xl font-black text-slate-900 -rotate-45 select-none whitespace-nowrap">
-            @illusix @illusix @illusix
+// --- WATERMARK COMPONENT (REVISI: FULL LAYAR & OVERLAY) ---
+const Watermark = () => {
+    // Buat array supaya tulisan muncul berkali-kali
+    const repeats = Array(15).fill("@illusix"); 
+    
+    return (
+        <div className="absolute inset-0 z-50 pointer-events-none flex flex-wrap items-center justify-center content-center opacity-[0.15] overflow-hidden">
+            {repeats.map((text, i) => (
+                <div key={i} className="p-6 md:p-10 text-3xl md:text-5xl font-black text-slate-500 -rotate-45 select-none whitespace-nowrap">
+                    {text}
+                </div>
+            ))}
         </div>
-    </div>
-);
+    );
+};
 
 // ==========================================
 // 1. KOMPONEN KALKULATOR SCALE IN/OUT
@@ -131,7 +132,6 @@ function ScaleCalculator() {
   const [autoSteps, setAutoSteps] = useState(0);
   const [spreadPct, setSpreadPct] = useState(0);
   
-  const printRef = useRef<HTMLDivElement>(null); 
   const { saveImage, isGenerating } = useScreenshot();
 
   const formatIDR = (num: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(num);
@@ -170,7 +170,8 @@ function ScaleCalculator() {
 
   return (
     <div className="space-y-4">
-        <div ref={printRef} className="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200 relative">
+        {/* ID UNIK UNTUK FOTO: id="capture-scale" */}
+        <div id="capture-scale" className="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200 relative">
         <Watermark />
         <div className={`p-4 ${mode === 'SCALE_IN' ? 'bg-emerald-700' : 'bg-red-700'} text-white relative z-10`}>
             <h2 className="text-lg font-bold">Kalkulator Strategi Pro - {emiten}</h2>
@@ -179,6 +180,7 @@ function ScaleCalculator() {
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-0 relative z-10">
             <div className="p-4 bg-slate-50 border-r border-slate-200 space-y-3">
+            {/* ... INPUTS ... */}
             <div className="flex bg-slate-200 rounded-lg p-1">
                 <button onClick={() => setMode("SCALE_IN")} className={`flex-1 py-2 text-xs font-bold rounded-md ${mode === "SCALE_IN" ? "bg-white shadow text-emerald-700" : "text-slate-500"}`}>Scale In (Buy)</button>
                 <button onClick={() => setMode("SCALE_OUT")} className={`flex-1 py-2 text-xs font-bold rounded-md ${mode === "SCALE_OUT" ? "bg-white shadow text-red-700" : "text-slate-500"}`}>Scale Out (Sell)</button>
@@ -199,7 +201,7 @@ function ScaleCalculator() {
             <div><label className="text-[10px] font-bold text-slate-500 uppercase">Metode</label><select value={method} onChange={(e) => setMethod(e.target.value as Method)} className="w-full p-2 border rounded bg-white text-sm"><option value="NORMAL">Normal</option><option value="MARTINGALE">Martingale</option><option value="FIBONACCI">Fibonacci</option></select></div>
             <div className="flex gap-2 items-end">{method === "MARTINGALE" && (<div className="w-24 shrink-0"><label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Faktor (x)</label><input type="number" step="0.1" value={multiplier} onChange={(e) => setMultiplier(Number(e.target.value))} className="w-full p-2 border rounded text-center font-bold" /></div>)}<div className="flex-1 bg-blue-50 border border-blue-100 rounded p-2 h-[38px] flex flex-col justify-center text-[10px] text-blue-800 leading-tight"><div className="flex justify-between items-center"><span>Spread: <strong>{spreadPct.toFixed(1)}%</strong></span></div></div></div>
             </div>
-            <div className="lg:col-span-2 p-4 bg-white/50 backdrop-blur-sm relative">
+            <div className="lg:col-span-2 p-4 bg-white/50 relative">
             {isInvalidTicker ? (
                 <div className="h-full w-full flex flex-col items-center justify-center text-slate-300 space-y-2 py-10"><svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg><p className="text-sm font-bold text-slate-400 text-center">Masukkan kode emiten yang benar<br/>untuk melihat hasil kalkulasi.</p></div>
             ) : (
@@ -222,7 +224,16 @@ function ScaleCalculator() {
             </div>
         </div>
         </div>
-        <button onClick={() => saveImage(printRef.current, `Scale_Strategy_${emiten}`)} disabled={isGenerating} className={`w-full py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-all shadow-lg text-white ${isGenerating ? "bg-slate-400 cursor-wait" : "bg-slate-800 hover:bg-slate-900"}`}>{isGenerating ? "⏳ Memproses Gambar..." : "📸 Simpan Gambar (Share)"}</button>
+        
+        <button 
+            onClick={() => saveImage("capture-scale", `Scale_Strategy_${emiten}`)} 
+            disabled={isGenerating} 
+            className={`w-full py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-all shadow-lg text-white ${
+                isGenerating ? "bg-slate-400 cursor-wait" : "bg-slate-800 hover:bg-slate-900"
+            }`}
+        >
+            {isGenerating ? "⏳ Memproses Gambar..." : "📸 Simpan Gambar (Share)"}
+        </button>
     </div>
   );
 }
@@ -242,7 +253,6 @@ function RightIssueStrategy() {
   const [waranNew, setWaranNew] = useState(1);
   const [result, setResult] = useState<any>(null);
   
-  const printRef = useRef<HTMLDivElement>(null); 
   const { saveImage, isGenerating } = useScreenshot();
   
   const formatIDR = (num: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(num);
@@ -271,7 +281,8 @@ function RightIssueStrategy() {
 
   return (
     <div className="space-y-4">
-        <div ref={printRef} className="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200 relative">
+        {/* ID UNIK: id="capture-ri" */}
+        <div id="capture-ri" className="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200 relative">
         <Watermark />
         <div className="bg-indigo-700 p-4 text-white relative z-10">
             <h2 className="text-lg font-bold">Strategi Right Issue - {emiten}</h2>
@@ -309,7 +320,16 @@ function RightIssueStrategy() {
             </div>
         </div>
         </div>
-        <button onClick={() => saveImage(printRef.current, `Strategi_RI_${emiten}`)} disabled={isGenerating} className={`w-full py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-all shadow-lg text-white ${isGenerating ? "bg-slate-400 cursor-wait" : "bg-slate-800 hover:bg-slate-900"}`}>{isGenerating ? "⏳ Memproses Gambar..." : "📸 Simpan Gambar (Share)"}</button>
+        
+        <button 
+            onClick={() => saveImage("capture-ri", `Strategi_RI_${emiten}`)} 
+            disabled={isGenerating} 
+            className={`w-full py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-all shadow-lg text-white ${
+                isGenerating ? "bg-slate-400 cursor-wait" : "bg-slate-800 hover:bg-slate-900"
+            }`}
+        >
+            {isGenerating ? "⏳ Memproses Gambar..." : "📸 Simpan Gambar (Share)"}
+        </button>
     </div>
   );
 }
@@ -326,7 +346,6 @@ function RiTerpCalculator() {
   const [result, setResult] = useState<any>(null);
   const [showFormula, setShowFormula] = useState(false);
   
-  const printRef = useRef<HTMLDivElement>(null); 
   const { saveImage, isGenerating } = useScreenshot();
 
   const formatIDR = (num: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(num);
@@ -343,7 +362,8 @@ function RiTerpCalculator() {
 
   return (
     <div className="space-y-4">
-        <div ref={printRef} className="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200 relative">
+        {/* ID UNIK: id="capture-terp" */}
+        <div id="capture-terp" className="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200 relative">
         <Watermark />
         <div className="bg-orange-600 p-4 text-white relative z-10">
             <h2 className="text-lg font-bold">Kalkulator TERP - {emiten}</h2>
@@ -367,7 +387,7 @@ function RiTerpCalculator() {
             </div>
         </div>
             
-        <div className="p-6 bg-white/50 backdrop-blur-sm relative z-10">
+        <div className="p-6 bg-white relative z-10">
             {result && (
                 <div className="space-y-4">
                 <div className="bg-white p-4 rounded-xl border border-orange-200 shadow-sm relative overflow-hidden text-center">
@@ -391,7 +411,16 @@ function RiTerpCalculator() {
             )}
         </div>
         </div>
-        <button onClick={() => saveImage(printRef.current, `TERP_${emiten}`)} disabled={isGenerating} className={`w-full py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-all shadow-lg text-white ${isGenerating ? "bg-slate-400 cursor-wait" : "bg-slate-800 hover:bg-slate-900"}`}>{isGenerating ? "⏳ Memproses Gambar..." : "📸 Simpan Gambar (Share)"}</button>
+        
+        <button 
+            onClick={() => saveImage("capture-terp", `TERP_${emiten}`)} 
+            disabled={isGenerating} 
+            className={`w-full py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-all shadow-lg text-white ${
+                isGenerating ? "bg-slate-400 cursor-wait" : "bg-slate-800 hover:bg-slate-900"
+            }`}
+        >
+            {isGenerating ? "⏳ Memproses Gambar..." : "📸 Simpan Gambar (Share)"}
+        </button>
     </div>
   );
 }
