@@ -232,7 +232,7 @@ function RightIssueStrategy() {
 }
 
 // ==========================================
-// 3. KOMPONEN RI TERP (TAB BARU - DENGAN INPUT SATUAN JUTA)
+// 3. KOMPONEN RI TERP (TAB BARU - UX UPDATED)
 // ==========================================
 function RiTerpCalculator() {
   const [emiten, setEmiten] = useState("INET");
@@ -283,14 +283,18 @@ function RiTerpCalculator() {
                 <div className="flex-1">
                     <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Jml Saham Lama (Juta)</label>
                     <input type="text" value={formatNum(ratioOld)} onChange={handleInput(setRatioOld)} className="w-full p-2 border rounded text-center font-bold bg-slate-50" placeholder="500" />
+                    {/* INDIKATOR NILAI SEBENARNYA */}
+                    <p className="text-[10px] text-slate-400 mt-1 font-mono text-center">= {formatNum(ratioOld * 1000000)} Lbr</p>
                 </div>
                 <span className="font-bold text-slate-400 text-lg mt-4">+</span>
                 <div className="flex-1">
                     <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Jml Saham Baru (Juta)</label>
                     <input type="text" value={formatNum(ratioNew)} onChange={handleInput(setRatioNew)} className="w-full p-2 border rounded text-center font-bold bg-slate-50" placeholder="100" />
+                    {/* INDIKATOR NILAI SEBENARNYA */}
+                    <p className="text-[10px] text-slate-400 mt-1 font-mono text-center">= {formatNum(ratioNew * 1000000)} Lbr</p>
                 </div>
             </div>
-            <p className="text-[9px] text-slate-400 mt-2 italic text-center">*Masukkan angka dalam satuan JUTA (Contoh: 500 = 500 Juta)</p>
+            <p className="text-[9px] text-slate-400 mt-3 italic text-center border-t pt-2 border-slate-100">*Masukkan angka dalam satuan JUTA (Contoh: 500 = 500.000.000)</p>
           </div>
       </div>
         
