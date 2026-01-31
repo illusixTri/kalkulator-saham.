@@ -19,7 +19,7 @@ export default function SuperStockApp() {
       <h3 className="font-bold text-slate-700 uppercase border-b pb-2">📖 Panduan Singkat</h3>
       <details className="group"><summary className="font-bold text-emerald-700 cursor-pointer list-none flex justify-between"><span>1. Scale In</span><span className="group-open:rotate-180 transition-transform">▼</span></summary><p className="text-slate-600 mt-2 text-xs leading-relaxed">Strategi cicil beli (piramida) saat harga turun.</p></details>
       <details className="group"><summary className="font-bold text-red-700 cursor-pointer list-none flex justify-between"><span>2. Scale Out</span><span className="group-open:rotate-180 transition-transform">▼</span></summary><p className="text-slate-600 mt-2 text-xs leading-relaxed">Strategi cicil jual (distribusi) saat harga naik.</p></details>
-      <details className="group"><summary className="font-bold text-indigo-700 cursor-pointer list-none flex justify-between"><span>3. Right Issue</span><span className="group-open:rotate-180 transition-transform">▼</span></summary><p className="text-slate-600 mt-2 text-xs leading-relaxed">Hitung jual induk untuk tebus right (Tail Swallowing).</p></details>
+      <details className="group"><summary className="font-bold text-indigo-700 cursor-pointer list-none flex justify-between"><span>3. Right Issue (TERP)</span><span className="group-open:rotate-180 transition-transform">▼</span></summary><p className="text-slate-600 mt-2 text-xs leading-relaxed">Hitung harga wajar (Teoritis) dan strategi jual induk.</p></details>
     </div>
   );
 
@@ -27,10 +27,10 @@ export default function SuperStockApp() {
     <div className="min-h-screen bg-slate-100 font-sans text-slate-800 pb-20">
       {/* --- MENU TAB ATAS --- */}
       <div className="bg-white shadow-sm border-b sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto flex overflow-x-auto">
-          <button onClick={() => setActiveTab("SCALE")} className={`flex-1 py-4 text-xs md:text-sm font-bold uppercase tracking-wider border-b-4 transition-colors shrink-0 ${activeTab === "SCALE" ? "border-emerald-600 text-emerald-700 bg-emerald-50" : "border-transparent text-slate-400"}`}>💰 Scale In/Out</button>
-          <button onClick={() => setActiveTab("RIGHT_ISSUE")} className={`flex-1 py-4 text-xs md:text-sm font-bold uppercase tracking-wider border-b-4 transition-colors shrink-0 ${activeTab === "RIGHT_ISSUE" ? "border-indigo-600 text-indigo-700 bg-indigo-50" : "border-transparent text-slate-400"}`}>📉 Right Issue</button>
-          <button onClick={() => setActiveTab("GAME")} className={`flex-1 py-4 text-xs md:text-sm font-bold uppercase tracking-wider border-b-4 transition-colors shrink-0 ${activeTab === "GAME" ? "border-orange-500 text-orange-600 bg-orange-50" : "border-transparent text-slate-400"}`}>🎮 Game Logika</button>
+        <div className="max-w-5xl mx-auto flex overflow-x-auto no-scrollbar">
+          <button onClick={() => setActiveTab("SCALE")} className={`flex-1 py-4 px-2 text-xs md:text-sm font-bold uppercase tracking-wider border-b-4 transition-colors shrink-0 ${activeTab === "SCALE" ? "border-emerald-600 text-emerald-700 bg-emerald-50" : "border-transparent text-slate-400"}`}>💰 Scale</button>
+          <button onClick={() => setActiveTab("RIGHT_ISSUE")} className={`flex-1 py-4 px-2 text-xs md:text-sm font-bold uppercase tracking-wider border-b-4 transition-colors shrink-0 ${activeTab === "RIGHT_ISSUE" ? "border-indigo-600 text-indigo-700 bg-indigo-50" : "border-transparent text-slate-400"}`}>📉 Right Isu</button>
+          <button onClick={() => setActiveTab("GAME")} className={`flex-1 py-4 px-2 text-xs md:text-sm font-bold uppercase tracking-wider border-b-4 transition-colors shrink-0 ${activeTab === "GAME" ? "border-orange-500 text-orange-600 bg-orange-50" : "border-transparent text-slate-400"}`}>🎮 Game</button>
         </div>
       </div>
 
@@ -142,59 +142,122 @@ function ScaleCalculator() {
 }
 
 // ==========================================
-// 2. KOMPONEN KALKULATOR RIGHT ISSUE
+// 2. KOMPONEN KALKULATOR RIGHT ISSUE (UPDATED WITH TERP)
 // ==========================================
 function RightIssueCalculator() {
   const [emiten, setEmiten] = useState("INET");
   const [lotAwal, setLotAwal] = useState(2598);
-  const [hargaPasar, setHargaPasar] = useState(400);
-  const [hargaTebus, setHargaTebus] = useState(250);
+  const [hargaPasar, setHargaPasar] = useState(400); // Cum Date Price
+  const [hargaTebus, setHargaTebus] = useState(250); // Exercise Price
   const [ratioOld, setRatioOld] = useState(3);
   const [ratioNew, setRatioNew] = useState(4);
   const [hasWaran, setHasWaran] = useState(false); 
   const [waranOld, setWaranOld] = useState(1);
   const [waranNew, setWaranNew] = useState(1);
   const [result, setResult] = useState<any>(null);
+
   const formatIDR = (num: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(num);
   const formatNum = (num: number) => new Intl.NumberFormat("id-ID").format(num);
   const handleInput = (setter: any) => (e: React.ChangeEvent<HTMLInputElement>) => { const val = e.target.value.replace(/\D/g, ""); setter(Number(val)); };
-  useEffect(() => { if (lotAwal === 0 || hargaPasar === 0 || hargaTebus === 0) return; const R = ratioOld / ratioNew; const isWorthy = hargaPasar > hargaTebus; const recommendation = isWorthy ? "GAS TEBUS! (Diskon)" : "JANGAN TEBUS! (Mahal)"; const pembagi = hargaTebus + (R * hargaPasar); const lotJual = Math.round((hargaTebus / pembagi) * lotAwal); const danaMasuk = lotJual * 100 * hargaPasar; const sisaLotLama = lotAwal - lotJual; const hakTebus = Math.floor((sisaLotLama / ratioOld) * ratioNew); const danaTebus = hakTebus * 100 * hargaTebus; const selisihCash = danaMasuk - danaTebus; const totalLotBaru = sisaLotLama + hakTebus; const growth = ((totalLotBaru - lotAwal) / lotAwal) * 100; let totalWaran = 0; if (hasWaran) totalWaran = Math.floor((hakTebus * waranNew) / waranOld); const valSisaLama = sisaLotLama * 100 * hargaPasar; const valBaru = danaTebus; const avgPrice = Math.round((valSisaLama + valBaru) / (totalLotBaru * 100)); setResult({ recommendation, isWorthy, lotJual, danaMasuk, hakTebus, danaTebus, selisihCash, totalLotBaru, growth, totalWaran, avgPrice }); }, [emiten, lotAwal, hargaPasar, hargaTebus, ratioOld, ratioNew, hasWaran, waranOld, waranNew]);
+
+  useEffect(() => { 
+    if (hargaPasar === 0 || hargaTebus === 0) return; 
+    
+    // --- 1. RUMUS BARU: HARGA TEORITIS (TERP) ---
+    // Rumus: ((RatioOld * HargaLama) + (RatioNew * HargaTebus)) / (RatioOld + RatioNew)
+    const pembilang = (hargaPasar * ratioOld) + (hargaTebus * ratioNew);
+    const penyebut = ratioOld + ratioNew;
+    const terp = pembilang / penyebut;
+    const dilution = ((terp - hargaPasar) / hargaPasar) * 100; // Persentase penurunan
+
+    // --- 2. RUMUS LAMA: STRATEGI TAIL SWALLOWING ---
+    const R = ratioOld / ratioNew; 
+    const isWorthy = hargaPasar > hargaTebus; 
+    const recommendation = isWorthy ? "GAS TEBUS! (Diskon)" : "JANGAN TEBUS! (Mahal)"; 
+    const pembagi = hargaTebus + (R * hargaPasar); 
+    const lotJual = lotAwal > 0 ? Math.round((hargaTebus / pembagi) * lotAwal) : 0; 
+    const danaMasuk = lotJual * 100 * hargaPasar; 
+    const sisaLotLama = lotAwal - lotJual; 
+    const hakTebus = Math.floor((sisaLotLama / ratioOld) * ratioNew); 
+    const danaTebus = hakTebus * 100 * hargaTebus; 
+    const selisihCash = danaMasuk - danaTebus; 
+    const totalLotBaru = sisaLotLama + hakTebus; 
+    const growth = lotAwal > 0 ? ((totalLotBaru - lotAwal) / lotAwal) * 100 : 0; 
+    
+    let totalWaran = 0; 
+    if (hasWaran) totalWaran = Math.floor((hakTebus * waranNew) / waranOld); 
+    
+    const valSisaLama = sisaLotLama * 100 * hargaPasar; 
+    const valBaru = danaTebus; 
+    const avgPrice = totalLotBaru > 0 ? Math.round((valSisaLama + valBaru) / (totalLotBaru * 100)) : 0; 
+
+    setResult({ 
+      recommendation, isWorthy, lotJual, danaMasuk, hakTebus, danaTebus, 
+      selisihCash, totalLotBaru, growth, totalWaran, avgPrice,
+      terp, dilution // Data baru masuk sini
+    }); 
+  }, [emiten, lotAwal, hargaPasar, hargaTebus, ratioOld, ratioNew, hasWaran, waranOld, waranNew]);
 
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200">
       <div className="bg-indigo-700 p-4 text-white relative">
         <h2 className="text-lg font-bold">Kalkulator Right Issue - {emiten}</h2>
-        <p className="opacity-80 text-xs">Strategi: "Tail Swallowing" (Tanpa Top Up)</p>
+        <p className="opacity-80 text-xs">Termasuk Analisa Harga Teoritis (TERP)</p>
         <div className="absolute top-4 right-4 font-mono font-bold text-white/50 text-xs">@illusix</div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
+        {/* INPUT SECTION */}
         <div className="p-4 bg-slate-50 border-b md:border-b-0 md:border-r border-slate-200 space-y-3">
           <div className="grid grid-cols-3 gap-2">
             <div className="col-span-1"><label className="text-[10px] font-bold text-slate-500 uppercase">Emiten</label><input type="text" value={emiten} onChange={(e) => setEmiten(e.target.value.toUpperCase())} className="w-full p-2 border rounded font-bold uppercase bg-white" /></div>
             <div className="col-span-2"><label className="text-[10px] font-bold text-slate-500 uppercase">Lot Awal (N)</label><input type="text" value={formatNum(lotAwal)} onChange={handleInput(setLotAwal)} className="w-full p-2 border rounded font-bold" /></div>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <div><label className="text-[10px] font-bold text-slate-500 uppercase">Harga Pasar</label><input type="text" value={formatNum(hargaPasar)} onChange={handleInput(setHargaPasar)} className="w-full p-2 border rounded font-bold text-emerald-700" /></div>
+            <div><label className="text-[10px] font-bold text-slate-500 uppercase">Harga Pasar (Cum)</label><input type="text" value={formatNum(hargaPasar)} onChange={handleInput(setHargaPasar)} className="w-full p-2 border rounded font-bold text-emerald-700" /></div>
             <div><label className="text-[10px] font-bold text-slate-500 uppercase">Harga Tebus</label><input type="text" value={formatNum(hargaTebus)} onChange={handleInput(setHargaTebus)} className="w-full p-2 border rounded font-bold text-orange-600" /></div>
           </div>
           <div className="bg-white p-2 border rounded"><div className="flex items-center gap-3"><div className="flex-1"><label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Rasio Lama (Kiri)</label><input type="number" value={ratioOld} onChange={(e) => setRatioOld(Number(e.target.value))} className="w-full p-2 border rounded text-center font-bold bg-slate-50" /></div><span className="font-bold text-slate-400 text-lg mt-4">:</span><div className="flex-1"><label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Rasio Baru (Kanan)</label><input type="number" value={ratioNew} onChange={(e) => setRatioNew(Number(e.target.value))} className="w-full p-2 border rounded text-center font-bold bg-slate-50" /></div></div></div>
           <div className="bg-slate-50 p-2 rounded-lg border border-slate-200"><div className="flex items-center justify-between mb-2"><label className="text-xs font-bold text-slate-600">Ada Waran?</label><input type="checkbox" checked={hasWaran} onChange={(e) => setHasWaran(e.target.checked)} className="w-5 h-5 accent-indigo-600" /></div>{hasWaran && (<div className="flex items-center gap-2 text-xs"><span className="text-slate-500">Tiap</span><input type="number" value={waranOld} onChange={(e) => setWaranOld(Number(e.target.value))} className="w-12 p-1 border rounded text-center bg-white" /><span className="text-slate-500">Dpt</span><input type="number" value={waranNew} onChange={(e) => setWaranNew(Number(e.target.value))} className="w-12 p-1 border rounded text-center bg-white" /><span className="text-slate-500">Waran</span></div>)}</div>
-          {result && (<div className="p-2 bg-blue-50 border border-blue-200 rounded text-[11px] text-blue-900 text-center leading-tight">Jual induk <strong>{formatNum(result.lotJual)}</strong> lot untuk menebus <strong>{formatNum(result.hakTebus)}</strong> lot.</div>)}
         </div>
+        
+        {/* RESULT SECTION */}
         <div className="p-4 bg-white">
           {result && (
             <div className="space-y-3">
-              <div className={`p-3 rounded-lg text-center text-white shadow-md ${result.isWorthy ? 'bg-emerald-600' : 'bg-red-600'}`}><p className="text-[10px] opacity-80 font-bold uppercase">Rekomendasi</p><h2 className="text-lg font-bold tracking-tight">{result.recommendation}</h2></div>
-              <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm space-y-3">
-                <div className="flex justify-between items-center bg-red-50 p-2 rounded border border-red-100"><div><span className="text-[10px] font-bold text-red-400 block uppercase">1. Jual Induk</span><span className="font-bold text-red-700 text-lg">{formatNum(result.lotJual)} Lot</span></div><div className="text-right"><span className="text-[10px] text-slate-400 block">Dapat Tunai</span><span className="font-bold text-slate-600 text-xs">{formatIDR(result.danaMasuk)}</span></div></div>
-                <div className="flex justify-between items-center bg-emerald-50 p-2 rounded border border-emerald-100"><div><span className="text-[10px] font-bold text-emerald-400 block uppercase">2. Tebus Right</span><span className="font-bold text-emerald-700 text-lg">{formatNum(result.hakTebus)} Lot</span></div><div className="text-right"><span className="text-[10px] text-slate-400 block">Bayar Tebus</span><span className="font-bold text-slate-600 text-xs">{formatIDR(result.danaTebus)}</span></div></div>
-                <div className="text-center text-xs text-slate-500 pt-1">Sisa Uang Tunai: <span className="font-bold text-slate-800 bg-slate-200 px-2 py-0.5 rounded">{formatIDR(result.selisihCash)}</span></div>
+              {/* --- FITUR BARU: HARGA TEORITIS --- */}
+              <div className="bg-orange-50 p-3 rounded-xl border border-orange-200 shadow-sm flex justify-between items-center relative overflow-hidden">
+                 <div className="absolute right-0 top-0 text-[100px] leading-none opacity-5">📉</div>
+                 <div>
+                    <p className="text-[10px] font-bold text-orange-700 uppercase tracking-widest mb-1">Harga Teoritis (Ex-Date)</p>
+                    <h2 className="text-3xl font-bold text-slate-800">{formatIDR(result.terp)}</h2>
+                 </div>
+                 <div className="text-right">
+                    <span className="block text-xs font-bold text-red-500">{result.dilution.toFixed(2)}%</span>
+                    <span className="text-[10px] text-slate-400">Potensi Penurunan</span>
+                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="bg-white p-3 rounded-lg border shadow-sm"><p className="text-[10px] text-slate-500 font-bold uppercase">Total Lot Akhir</p><p className="text-lg font-bold text-indigo-700">{formatNum(result.totalLotBaru)}</p><span className="inline-block px-1.5 py-0.5 rounded bg-green-100 text-green-700 text-[10px] font-bold">+{result.growth.toFixed(1)}% Growth</span></div>
-                <div className="bg-white p-3 rounded-lg border shadow-sm text-right"><p className="text-[10px] text-slate-500 font-bold uppercase">Harga Rata-rata (Est)</p><p className="text-lg font-bold text-emerald-600">{formatIDR(result.avgPrice)}</p><span className="text-[10px] text-slate-400">Harga Modal Baru</span></div>
+
+              {/* FITUR LAMA: TAIL SWALLOWING */}
+              <div className="border-t border-slate-100 pt-3">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Simulasi Strategi Jual Induk</p>
+                  <div className={`p-2 rounded text-center text-white text-xs font-bold mb-3 ${result.isWorthy ? 'bg-emerald-600' : 'bg-red-600'}`}>{result.recommendation}</div>
+                  
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="bg-slate-50 p-2 rounded">
+                        <span className="block text-slate-500">Jual Induk</span>
+                        <span className="font-bold text-red-600 text-sm">{formatNum(result.lotJual)} Lot</span>
+                    </div>
+                    <div className="bg-slate-50 p-2 rounded text-right">
+                        <span className="block text-slate-500">Tebus Baru</span>
+                        <span className="font-bold text-emerald-600 text-sm">{formatNum(result.hakTebus)} Lot</span>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3 flex justify-between items-center bg-blue-50 p-2 rounded border border-blue-100">
+                    <span className="text-xs text-blue-800 font-bold">Sisa Tunai</span>
+                    <span className="text-sm font-bold text-blue-600">{formatIDR(result.selisihCash)}</span>
+                  </div>
               </div>
-              {hasWaran && (<div className="bg-white p-3 rounded-lg border shadow-sm flex justify-between items-center"><div><p className="text-[10px] text-slate-500 font-bold uppercase">Bonus Waran</p><p className="text-xl font-bold text-orange-600">{formatNum(result.totalWaran)}</p></div><span className="text-xs text-slate-400">Lembar Gratis</span></div>)}
             </div>
           )}
         </div>
