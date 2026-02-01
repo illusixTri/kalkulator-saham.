@@ -62,7 +62,7 @@ export default function SuperStockApp() {
   );
 }
 
-// --- FUNGSI SAVE IMAGE BARU ---
+// --- FUNGSI SAVE IMAGE (FILENAME REVISED) ---
 const useScreenshot = () => {
     const [isGenerating, setIsGenerating] = useState(false);
 
@@ -83,7 +83,8 @@ const useScreenshot = () => {
             });
 
             const link = document.createElement("a");
-            link.download = `${filename}_${new Date().getTime()}.png`;
+            // FORMAT NAMA FILE: Illusix_Jenis_Emiten_Jam.png
+            link.download = `Illusix_${filename}_${new Date().getTime()}.png`;
             link.href = dataUrl;
             link.click();
             
@@ -98,11 +99,9 @@ const useScreenshot = () => {
     return { saveImage, isGenerating };
 };
 
-// --- WATERMARK COMPONENT (REVISI: FULL LAYAR & OVERLAY) ---
+// --- WATERMARK COMPONENT ---
 const Watermark = () => {
-    // Buat array supaya tulisan muncul berkali-kali
     const repeats = Array(15).fill("@illusix"); 
-    
     return (
         <div className="absolute inset-0 z-50 pointer-events-none flex flex-wrap items-center justify-center content-center opacity-[0.15] overflow-hidden">
             {repeats.map((text, i) => (
@@ -125,8 +124,11 @@ function ScaleCalculator() {
   const [targetPrice, setTargetPrice] = useState(505);
   const [method, setMethod] = useState<Method>("MARTINGALE");
   const [multiplier, setMultiplier] = useState(2.0);
+  
+  // --- REVISI: MANUAL STEPS BISA KOSONG ("") ---
   const [isAutoLevel, setIsAutoLevel] = useState(true);
-  const [manualSteps, setManualSteps] = useState(5);
+  const [manualSteps, setManualSteps] = useState<number | "">(""); 
+
   const [results, setResults] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>({});
   const [autoSteps, setAutoSteps] = useState(0);
@@ -148,10 +150,22 @@ function ScaleCalculator() {
   const calculateStrategy = () => { 
     if (isInvalidTicker) { setResults([]); return; } 
     const spread = Math.abs(startPrice - targetPrice) / startPrice; setSpreadPct(spread * 100); 
+    
     let calculatedAutoSteps = 3; 
     if (spread < 0.10) calculatedAutoSteps = 3; else if (spread < 0.25) calculatedAutoSteps = 5; else if (spread < 0.50) calculatedAutoSteps = 8; else calculatedAutoSteps = 13; 
     setAutoSteps(calculatedAutoSteps);
-    let steps = isAutoLevel ? calculatedAutoSteps : manualSteps; if (steps < 2) steps = 2;
+    
+    // --- LOGIKA LEVEL KOSONG ---
+    // Jika manual dan kosong, jangan hitung (return)
+    if (!isAutoLevel && (manualSteps === "" || manualSteps === 0)) {
+        setResults([]);
+        setSummary({});
+        return;
+    }
+
+    let steps = isAutoLevel ? calculatedAutoSteps : (manualSteps as number); 
+    if (steps < 2) steps = 2;
+
     let weights: number[] = []; 
     if (method === "NORMAL") weights = Array(steps).fill(1); else if (method === "MARTINGALE") for (let i = 0; i < steps; i++) weights.push(Math.pow(multiplier, i)); else if (method === "FIBONACCI") { let a = 1, b = 1; for (let i = 0; i < steps; i++) { weights.push(a); const temp = a + b; a = b; b = temp; } } 
     if (mode === "SCALE_OUT") weights.sort((a, b) => b - a); 
@@ -195,8 +209,26 @@ function ScaleCalculator() {
                 <div><label className="text-[10px] font-bold text-slate-500 uppercase">Harga Target</label><input type="number" value={targetPrice} onChange={(e) => setTargetPrice(Number(e.target.value))} className="w-full p-2 border rounded" /></div>
             </div>
             <div className="bg-white p-2 rounded border border-slate-300">
-                <div className="flex items-center gap-2 mb-2"><button onClick={() => setIsAutoLevel(true)} className={`flex-1 text-[10px] font-bold py-1.5 rounded ${isAutoLevel ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'}`}>Auto Level</button><button onClick={() => setIsAutoLevel(false)} className={`flex-1 text-[10px] font-bold py-1.5 rounded ${!isAutoLevel ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'}`}>Manual</button></div>
-                {!isAutoLevel ? (<div className="flex items-center justify-between"><label className="text-[10px] font-bold text-slate-500 uppercase">Jml Level</label><input type="number" value={manualSteps} onChange={(e) => setManualSteps(Math.max(2, Number(e.target.value)))} className="w-20 p-1 border rounded text-center font-bold text-blue-700" /></div>) : (<div className="text-[10px] text-center text-slate-400 italic">Level dihitung otomatis dari spread ({autoSteps} Lvl)</div>)}
+                <div className="flex items-center gap-2 mb-2"><button onClick={() => {setIsAutoLevel(true); setManualSteps("")}} className={`flex-1 text-[10px] font-bold py-1.5 rounded ${isAutoLevel ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'}`}>Auto Level</button><button onClick={() => setIsAutoLevel(false)} className={`flex-1 text-[10px] font-bold py-1.5 rounded ${!isAutoLevel ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'}`}>Manual</button></div>
+                
+                {/* --- INPUT MANUAL YANG BISA KOSONG --- */}
+                {!isAutoLevel ? (
+                    <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">Jml Level</label>
+                        <input 
+                            type="number" 
+                            placeholder="0" 
+                            value={manualSteps} 
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                setManualSteps(val === "" ? "" : Number(val));
+                            }} 
+                            className="w-20 p-1 border rounded text-center font-bold text-blue-700" 
+                        />
+                    </div>
+                ) : (
+                    <div className="text-[10px] text-center text-slate-400 italic">Level dihitung otomatis dari spread ({autoSteps} Lvl)</div>
+                )}
             </div>
             <div><label className="text-[10px] font-bold text-slate-500 uppercase">Metode</label><select value={method} onChange={(e) => setMethod(e.target.value as Method)} className="w-full p-2 border rounded bg-white text-sm"><option value="NORMAL">Normal</option><option value="MARTINGALE">Martingale</option><option value="FIBONACCI">Fibonacci</option></select></div>
             <div className="flex gap-2 items-end">{method === "MARTINGALE" && (<div className="w-24 shrink-0"><label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Faktor (x)</label><input type="number" step="0.1" value={multiplier} onChange={(e) => setMultiplier(Number(e.target.value))} className="w-full p-2 border rounded text-center font-bold" /></div>)}<div className="flex-1 bg-blue-50 border border-blue-100 rounded p-2 h-[38px] flex flex-col justify-center text-[10px] text-blue-800 leading-tight"><div className="flex justify-between items-center"><span>Spread: <strong>{spreadPct.toFixed(1)}%</strong></span></div></div></div>
@@ -206,19 +238,28 @@ function ScaleCalculator() {
                 <div className="h-full w-full flex flex-col items-center justify-center text-slate-300 space-y-2 py-10"><svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg><p className="text-sm font-bold text-slate-400 text-center">Masukkan kode emiten yang benar<br/>untuk melihat hasil kalkulasi.</p></div>
             ) : (
                 <>
-                    <div className="flex flex-col gap-2 mb-4">
-                        <div className="p-3 bg-white rounded-lg border border-slate-200 flex justify-between items-center shadow-sm"><p className="text-[10px] text-slate-500 uppercase font-bold">Estimasi Uang</p><p className="text-lg font-bold text-slate-800">{formatIDR(summary.totalMoney)}</p></div>
-                        <div className="grid grid-cols-2 gap-2">
-                        <div className="p-3 bg-white rounded-lg border border-slate-200 shadow-sm"><p className="text-[10px] text-slate-500 uppercase font-bold">Total Lot</p><p className="text-lg font-bold text-blue-600">{formatNum(summary.totalLot)} <span className="text-[10px] text-slate-400">Lot</span></p></div>
-                        <div className="p-3 bg-white rounded-lg border border-slate-200 text-right shadow-sm"><p className="text-[10px] text-slate-500 uppercase font-bold">Avg. Price</p><p className="text-lg font-bold text-emerald-600">{formatIDR(summary.finalAvg)}</p></div>
+                    {/* JIKA MANUAL KOSONG, TAMPILKAN PESAN KOSONG */}
+                    {results.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-slate-400 italic">
+                            <p>Masukkan jumlah level untuk melihat hasil...</p>
                         </div>
-                    </div>
-                    <div className="overflow-x-auto border rounded-lg bg-white shadow-sm">
-                        <table className="w-full text-xs md:text-sm text-right">
-                        <thead className="bg-slate-100 text-slate-600 font-bold uppercase text-[10px]"><tr><th className="p-2 text-center">Lvl</th><th className="p-2 text-emerald-700">Harga</th><th className="p-2 hidden md:table-cell">Bobot</th><th className="p-2">Lot</th><th className="p-2">Value (Rp)</th><th className="p-2 text-blue-700">Avg Run</th></tr></thead>
-                        <tbody className="divide-y divide-slate-100">{results.map((r, i) => (<tr key={i} className="hover:bg-slate-50"><td className="p-2 text-center font-bold text-slate-400">{r.level}</td><td className="p-2 font-mono font-bold text-emerald-700">{formatNum(r.price)}</td><td className="p-2 text-slate-500 hidden md:table-cell">{r.weightPct}%</td><td className="p-2 font-bold">{formatNum(r.lot)}</td><td className="p-2 text-slate-600">{formatIDR(r.value)}</td><td className="p-2 font-bold text-blue-600">{formatNum(r.avgPrice)}</td></tr>))}</tbody>
-                        </table>
-                    </div>
+                    ) : (
+                        <>
+                            <div className="flex flex-col gap-2 mb-4">
+                                <div className="p-3 bg-white rounded-lg border border-slate-200 flex justify-between items-center shadow-sm"><p className="text-[10px] text-slate-500 uppercase font-bold">Estimasi Uang</p><p className="text-lg font-bold text-slate-800">{formatIDR(summary.totalMoney)}</p></div>
+                                <div className="grid grid-cols-2 gap-2">
+                                <div className="p-3 bg-white rounded-lg border border-slate-200 shadow-sm"><p className="text-[10px] text-slate-500 uppercase font-bold">Total Lot</p><p className="text-lg font-bold text-blue-600">{formatNum(summary.totalLot)} <span className="text-[10px] text-slate-400">Lot</span></p></div>
+                                <div className="p-3 bg-white rounded-lg border border-slate-200 text-right shadow-sm"><p className="text-[10px] text-slate-500 uppercase font-bold">Avg. Price</p><p className="text-lg font-bold text-emerald-600">{formatIDR(summary.finalAvg)}</p></div>
+                                </div>
+                            </div>
+                            <div className="overflow-x-auto border rounded-lg bg-white shadow-sm">
+                                <table className="w-full text-xs md:text-sm text-right">
+                                <thead className="bg-slate-100 text-slate-600 font-bold uppercase text-[10px]"><tr><th className="p-2 text-center">Lvl</th><th className="p-2 text-emerald-700">Harga</th><th className="p-2 hidden md:table-cell">Bobot</th><th className="p-2">Lot</th><th className="p-2">Value (Rp)</th><th className="p-2 text-blue-700">Avg Run</th></tr></thead>
+                                <tbody className="divide-y divide-slate-100">{results.map((r, i) => (<tr key={i} className="hover:bg-slate-50"><td className="p-2 text-center font-bold text-slate-400">{r.level}</td><td className="p-2 font-mono font-bold text-emerald-700">{formatNum(r.price)}</td><td className="p-2 text-slate-500 hidden md:table-cell">{r.weightPct}%</td><td className="p-2 font-bold">{formatNum(r.lot)}</td><td className="p-2 text-slate-600">{formatIDR(r.value)}</td><td className="p-2 font-bold text-blue-600">{formatNum(r.avgPrice)}</td></tr>))}</tbody>
+                                </table>
+                            </div>
+                        </>
+                    )}
                 </>
             )}
             </div>
@@ -227,9 +268,11 @@ function ScaleCalculator() {
         
         <button 
             onClick={() => saveImage("capture-scale", `Scale_Strategy_${emiten}`)} 
-            disabled={isGenerating} 
+            disabled={isGenerating || results.length === 0} 
             className={`w-full py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-all shadow-lg text-white ${
-                isGenerating ? "bg-slate-400 cursor-wait" : "bg-slate-800 hover:bg-slate-900"
+                isGenerating ? "bg-slate-400 cursor-wait" : 
+                results.length === 0 ? "bg-slate-300 cursor-not-allowed" :
+                "bg-slate-800 hover:bg-slate-900"
             }`}
         >
             {isGenerating ? "⏳ Memproses Gambar..." : "📸 Simpan Gambar (Share)"}
@@ -322,7 +365,7 @@ function RightIssueStrategy() {
         </div>
         
         <button 
-            onClick={() => saveImage("capture-ri", `Strategi_RI_${emiten}`)} 
+            onClick={() => saveImage("capture-ri", `RI_Strategi_${emiten}`)} 
             disabled={isGenerating} 
             className={`w-full py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-all shadow-lg text-white ${
                 isGenerating ? "bg-slate-400 cursor-wait" : "bg-slate-800 hover:bg-slate-900"
@@ -413,7 +456,7 @@ function RiTerpCalculator() {
         </div>
         
         <button 
-            onClick={() => saveImage("capture-terp", `TERP_${emiten}`)} 
+            onClick={() => saveImage("capture-terp", `RI_TERP_${emiten}`)} 
             disabled={isGenerating} 
             className={`w-full py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-all shadow-lg text-white ${
                 isGenerating ? "bg-slate-400 cursor-wait" : "bg-slate-800 hover:bg-slate-900"
