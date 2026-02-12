@@ -103,11 +103,10 @@ const useScreenshot = () => {
     return { saveImage, isGenerating };
 };
 
-// --- WATERMARK COMPONENT (REVISI: Z-INDEX 50 BIAR DI ATAS) ---
+// --- WATERMARK COMPONENT ---
 const Watermark = () => {
     const repeats = Array(20).fill("@illusix"); 
     return (
-        // PERBAIKAN DI SINI: z-[50] (sebelumnya z-[5])
         <div className="absolute inset-0 z-[50] pointer-events-none flex flex-wrap items-center justify-center content-center opacity-[0.1] overflow-hidden">
             {repeats.map((text, i) => (
                 <div key={i} className="p-8 text-3xl font-black text-slate-800 -rotate-45 select-none whitespace-nowrap">{text}</div>
@@ -125,7 +124,10 @@ function ScaleCalculator() {
   const [totalInput, setTotalInput] = useState(50000000); 
   const [startPrice, setStartPrice] = useState(605);
   const [targetPrice, setTargetPrice] = useState(505);
-  const [method, setMethod] = useState<Method>("MARTINGALE");
+  
+  // --- DEFAULT METHOD SEKARANG 'NORMAL' ---
+  const [method, setMethod] = useState<Method>("NORMAL");
+  
   const [multiplier, setMultiplier] = useState(2.0);
   const [isAutoLevel, setIsAutoLevel] = useState(true);
   const [manualSteps, setManualSteps] = useState<number | "">(""); 
@@ -222,7 +224,6 @@ function ScaleCalculator() {
                         <div className="h-full flex flex-col items-center justify-center text-slate-400 italic"><p>Masukkan jumlah level untuk melihat hasil...</p></div>
                     ) : (
                         <>
-                            {/* BARIS RINGKASAN AGAR GAMBAR JELAS */}
                             <div className="mb-3 text-[10px] bg-slate-100 p-2 rounded text-center font-mono text-slate-600">
                                 <span>Metode: <strong>{method}</strong> {method === "MARTINGALE" && `(${multiplier}x)`}</span> • <span>{mode === "SCALE_IN" ? "Modal" : "Lot"}: <strong>{formatNum(totalInput)}</strong></span>
                             </div>
