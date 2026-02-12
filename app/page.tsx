@@ -103,11 +103,12 @@ const useScreenshot = () => {
     return { saveImage, isGenerating };
 };
 
-// --- WATERMARK COMPONENT ---
+// --- WATERMARK COMPONENT (REVISI: Z-INDEX 50 BIAR DI ATAS) ---
 const Watermark = () => {
     const repeats = Array(20).fill("@illusix"); 
     return (
-        <div className="absolute inset-0 z-[5] pointer-events-none flex flex-wrap items-center justify-center content-center opacity-[0.08] overflow-hidden">
+        // PERBAIKAN DI SINI: z-[50] (sebelumnya z-[5])
+        <div className="absolute inset-0 z-[50] pointer-events-none flex flex-wrap items-center justify-center content-center opacity-[0.1] overflow-hidden">
             {repeats.map((text, i) => (
                 <div key={i} className="p-8 text-3xl font-black text-slate-800 -rotate-45 select-none whitespace-nowrap">{text}</div>
             ))}
@@ -149,9 +150,11 @@ function ScaleCalculator() {
   const calculateStrategy = () => { 
     if (isInvalidTicker) { setResults([]); return; } 
     const spread = Math.abs(startPrice - targetPrice) / startPrice; setSpreadPct(spread * 100); 
+    
     let calculatedAutoSteps = 3; 
     if (spread < 0.10) calculatedAutoSteps = 3; else if (spread < 0.25) calculatedAutoSteps = 5; else if (spread < 0.50) calculatedAutoSteps = 8; else calculatedAutoSteps = 13; 
     setAutoSteps(calculatedAutoSteps);
+    
     if (!isAutoLevel && (manualSteps === "" || manualSteps === 0)) { setResults([]); setSummary({}); return; }
     let steps = isAutoLevel ? calculatedAutoSteps : (manualSteps as number); if (steps < 2) steps = 2;
     let weights: number[] = []; 
@@ -201,7 +204,6 @@ function ScaleCalculator() {
                 ) : ( <div className="text-[10px] text-center text-slate-400 italic">Level dihitung otomatis dari spread ({autoSteps} Lvl)</div> )}
             </div>
             
-            {/* FIX: MENAMBAHKAN 'selected' AGAR DROPDOWN TIDAK RESET SAAT DIFOTO */}
             <div><label className="text-[10px] font-bold text-slate-500 uppercase">Metode</label><select value={method} onChange={(e) => setMethod(e.target.value as Method)} className="w-full p-2 border rounded bg-white text-sm">
                 <option value="NORMAL" selected={method === "NORMAL"}>Normal</option>
                 <option value="MARTINGALE" selected={method === "MARTINGALE"}>Martingale</option>
@@ -220,7 +222,7 @@ function ScaleCalculator() {
                         <div className="h-full flex flex-col items-center justify-center text-slate-400 italic"><p>Masukkan jumlah level untuk melihat hasil...</p></div>
                     ) : (
                         <>
-                            {/* --- BARIS RINGKASAN UNTUK GAMBAR --- */}
+                            {/* BARIS RINGKASAN AGAR GAMBAR JELAS */}
                             <div className="mb-3 text-[10px] bg-slate-100 p-2 rounded text-center font-mono text-slate-600">
                                 <span>Metode: <strong>{method}</strong> {method === "MARTINGALE" && `(${multiplier}x)`}</span> • <span>{mode === "SCALE_IN" ? "Modal" : "Lot"}: <strong>{formatNum(totalInput)}</strong></span>
                             </div>
